@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="🦁 荣耀系统 v12.1.2 - 为孩子设计的行为激励和任务管理系统">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-title" content="荣耀系统">
+    
+    <!-- PWA 清单文件 -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS 相关配置 -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>">
+    
+    <title>🦁 荣耀系统 v12.1.2 - 用户管理版</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase SDK (Compat 版本，提供全局 firebase.* 命名空间) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- 你的项目配置（请在 firebase-config.js 中填入实际参数） -->
+    <script src="firebase-config.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1c1c1e;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* === 登录/注册页 === */
+        #login-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        .auth-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        .auth-box h1 { text-align: center; margin-bottom: 10px; font-size: 28px; }
+        .auth-box p { text-align: center; color: #666; margin-bottom: 25px; font-size: 14px; }
+        .auth-input, .auth-select {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        .auth-input:focus, .auth-select:focus { border-color: #667eea; outline: none; }
+        .btn-auth {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .auth-hint { text-align: center; margin-top: 15px; font-size: 12px; color: #999; }
+
+        /* 默认隐藏注册框 */
+        #register-box { display: none; }
+        #login-box { display: block; }
+
+        /* === 主应用页 === */
+        #app-page {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .rank-badge { font-size: 18px; color: #667eea; font-weight: bold; margin-bottom: 10px; }
+        .stars-display { font-size: 48px; font-weight: 800; color: #333; }
+        .user-info { margin-top: 10px; color: #666; font-size: 14px; }
+        .user-role { display: inline-block; padding: 4px 12px; background: #f0f0f0; border-radius: 12px; font-size: 12px; margin-left: 10px; }
+
+        /* 板块标题 */
+        .section-title {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 16px;
+            margin: 20px 0 15px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title.core { color: #e74c3c; }
+        .section-title.daily { color: #f39c12; }
+        .section-title.bounty { color: #9b59b6; }
+        .section-title.store { color: #3498db; }
+        .section-title.penalty { color: #c0392b; }
+
+        /* 任务卡片 */
+        .task-card {
+            background: white;
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 5px solid #ccc;
+        }
+        .task-card.core { border-left-color: #e74c3c; }
+        .task-card.daily { border-left-color: #f39c12; }
+        .task-card.bounty { border-left-color: #9b59b6; }
+        .task-card.penalty { border-left-color: #c0392b; }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .task-name { font-weight: bold; font-size: 17px; }
+        .task-reward { color: #27ae60; font-weight: bold; font-size: 15px; }
+        .task-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pending-badge {
+            background: #ffcc00;
+            color: #555;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* 按钮 */
+        button {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        .btn-submit { background: #3498db; }
+        .btn-approve { background: #27ae60; }
+        .btn-crit { background: #e67e22; }
+        .btn-reject { background: #e74c3c; }
+        .btn-delete { background: #95a5a6; }
+        .btn-buy { background: #9b59b6; }
+        .btn-penalty { background: #c0392b; }
+        .btn-logout { background: #95a5a6; }
+        .btn-password { background: #667eea; }
+        .btn-view-rank { display: inline-block; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+
+        /* 底部按钮区 */
+        .bottom-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .bottom-actions button { flex: 1; min-width: 140px; padding: 15px; font-size: 16px; }
+
+        /* 输入区 */
+        .input-area {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .input-area h3 { margin-bottom: 12px; font-size: 16px; color: #666; }
+        .input-group { display: flex; gap: 10px; }
+        .input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        .input-group input:focus { border-color: #9b59b6; outline: none; }
+        .input-group button { white-space: nowrap; }
+
+        /* 商店卡片 */
+        .store-item {
+            background: white;
+            padding: 15px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .store-name { font-weight: bold; font-size: 16px; }
+        .store-cost { color: #e74c3c; font-weight: bold; font-size: 14px; margin-top: 5px; }
+
+        /* 待审批区域 */
+        #dad-zone {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        /* 提示框 */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            max-width: 80%;
+        }
+
+        /* 修改密码弹窗和找回密码弹窗 */
+        #password-modal,
+        #reset-password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #password-modal.show,
+        #reset-password-modal.show { display: flex; animation: fadeIn 0.3s; }
+        .password-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .password-modal-content h2 { margin-bottom: 20px; color: #333; text-align: center; }
+        .password-modal-content input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        .password-modal-content input:focus { border-color: #667eea; outline: none; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; }
+        .modal-buttons .btn-approve { background: #27ae60; }
+        .modal-buttons .btn-reject { background: #95a5a6; }
+
+        /* 军衔档案弹窗 */
+        #rank-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #rank-modal.show { display: flex; animation: fadeIn 0.3s; }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .modal-header h2 { font-size: 24px; color: #333; margin-bottom: 5px; }
+        .modal-header p { color: #999; font-size: 14px; }
+        .current-status {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .current-status .rank { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .current-status .score { font-size: 18px; opacity: 0.9; margin-bottom: 15px; }
+        .progress-info { font-size: 14px; margin-bottom: 10px; }
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: white;
+            height: 100%;
+            transition: width 0.5s;
+        }
+        .rank-table {
+            width: 100%;
+            margin: 20px 0;
+        }
+        .rank-table tr {
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .rank-table td {
+            padding: 12px 8px;
+            font-size: 15px;
+        }
+        .rank-table .rank-icon { font-size: 20px; }
+        .rank-table .rank-name { font-weight: bold; color: #333; }
+        .rank-table .rank-score { color: #667eea; font-weight: bold; text-align: right; }
+        .rank-table tr.current-rank { background: #f0f4ff; }
+        .btn-close-modal {
+            width: 100%;
+            padding: 15px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 权限隐藏 */
+        .admin-only { display: block; }
+        .executor-only { display: block; }
+        .hide { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <noscript>
+        <div style="max-width: 520px; margin: 14px auto 0; padding: 14px 16px; border-radius: 12px; background: #fff3f3; border: 2px solid #e74c3c; color: #2c3e50; font-size: 14px; line-height: 1.5;">
+            <div style="font-weight: 800; margin-bottom: 6px;">❌ 当前浏览器未启用 JavaScript</div>
+            <div>所以“登录/注册/找回密码”等按钮会点了没反应。</div>
+            <div style="margin-top: 8px;">解决方法：iPhone/iPad 打开“设置 → Safari → 高级 → JavaScript”，把它打开；同时请暂时关闭广告拦截/内容拦截器。</div>
+        </div>
+    </noscript>
+
+    <div id="message-box"></div>
+
+    <!-- 登录/注册页 -->
+    <div id="login-page">
+        
+        <!-- 登录框 -->
+        <div class="auth-box" id="login-box">
+            <h1>🦁 荣耀系统 v12.1.2</h1>
+            <p>用户管理版 · 版本：v12.1.2（2025-12-28）</p>
+            
+            <input type="text" id="username" class="auth-input" placeholder="账号" onkeypress="if(event.key==='Enter') handleLogin()">
+            <input type="password" id="password" class="auth-input" placeholder="密码" onkeypress="if(event.key==='Enter') handleLogin()">
+            
+            <button class="btn-auth" onclick="handleLogin()">🚀 登录</button>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button style="flex: 1; padding: 12px; background: #f0f0f0; color: #333; border: 2px solid #e0e0e0; border-radius: 10px; font-weight: bold; cursor: pointer;" onclick="showRegister()">📝 注册账号</button>
+                <button style="flex: 1; padding: 12px; background: #f0f0f0; color: #333; border: 2px solid #e0e0e0; border-radius: 10px; font-weight: bold; cursor: pointer;" onclick="openResetPasswordModal()">🔑 找回密码</button>
+            </div>
+        </div>
+
+        <!-- 注册框 -->
+        <div class="auth-box" id="register-box">
+            <h1>🎯 创建新账号</h1>
+            <p>加入荣耀系统</p>
+            
+            <input type="text" id="reg-username" class="auth-input" placeholder="设置账号（3-20个字符）">
+            <input type="password" id="reg-password" class="auth-input" placeholder="设置密码（至少6位）">
+            <input type="text" id="reg-nickname" class="auth-input" placeholder="昵称（显示名字）">
+            
+            <select id="reg-role" class="auth-select">
+                <option value="">请选择身份</option>
+                <option value="admin">🛡️ 管理者（可以审批任务）</option>
+                <option value="executor">⚔️ 执行者（完成任务）</option>
+            </select>
+            
+            <button class="btn-auth" onclick="handleRegister()">📝 注册账号</button>
+            
+            <div style="margin-top: 15px;">
+                <button style="width: 100%; padding: 12px; background: #f0f0f0; color: #333; border: 2px solid #e0e0e0; border-radius: 10px; font-weight: bold; cursor: pointer;" onclick="showLogin()">← 返回登陆</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 主应用页 -->
+    <div id="app-page">
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="rank-badge" id="rank-badge">🌑 预备兵</div>
+            <button class="btn-view-rank" onclick="openRankModal()">📂 查看晋升表</button>
+            <button class="btn-view-rank" onclick="openHistory()">📜 成长足迹</button>
+            <div class="admin-only" id="child-filter-wrap" style="margin-top: 10px;">
+                <span style="font-size: 13px; color:#666; margin-right: 8px;">孩子：</span>
+                <select id="child-filter" class="auth-select" style="display:inline-block; width:auto; padding: 10px 12px; margin: 0; font-size: 14px;" onchange="onChildFilterChange()"></select>
+            </div>
+            <div class="stars-display"><span id="total-stars">0</span> ⭐</div>
+            <div class="user-info" id="user-info">欢迎回来 <span class="user-role" id="user-role">管理者</span></div>
+        </div>
+
+        <!-- 爸爸审批区（仅管理者可见，优先级最高） -->
+        <div id="dad-zone" class="admin-only">
+            <div class="section-title" style="color: #e67e22;">⏳ 待审批任务</div>
+            <div id="pending-list"></div>
+        </div>
+
+        <!-- 惩罚区（仅管理者可见） -->
+        <div id="penalty-zone" class="admin-only">
+            <div class="section-title penalty">⚠️ 惩罚管理</div>
+            <div id="penalty-list"></div>
+        </div>
+
+        <!-- 板块一：核心使命 -->
+        <div class="section-title core">🛡️ 核心使命</div>
+        <div id="core-tasks"></div>
+
+        <!-- 板块二：每日充能 -->
+        <div class="section-title daily">⚡ 每日充能</div>
+        <div id="daily-tasks"></div>
+
+        <!-- 板块三：赏金悬赏 -->
+        <div class="section-title bounty">💰 赏金悬赏</div>
+        
+        <!-- 发布悬赏输入框（仅管理者可见） -->
+        <div class="input-area admin-only">
+            <h3>📝 发布新悬赏</h3>
+            <div class="input-group">
+                <input type="text" id="bounty-input" placeholder="输入任务名称">
+                <button class="btn-submit" onclick="addBounty()">发布</button>
+            </div>
+        </div>
+        
+        <div id="bounty-tasks"></div>
+
+        <!-- 军需商店 -->
+        <div class="section-title store">🏪 军需商店</div>
+        <div id="store-items"></div>
+
+        <!-- 底部操作按钮 -->
+        <div class="bottom-actions">
+            <button class="btn-password" onclick="openPasswordModal()">🔐 修改密码</button>
+            <button class="btn-password" onclick="testFirebase()">🔌 测试云连接</button>
+            <button class="btn-password" onclick="promptFirebaseConfig()">⚙️ 配置云参数</button>
+            <button class="btn-password admin-only" onclick="manualSyncCheck()">🔄 手动同步</button>
+            <button class="btn-password admin-only" onclick="openClearTool()">🧹 修复登录(清缓存)</button>
+            <button class="btn-password" onclick="exportData()">📤 导出数据</button>
+            <button class="btn-password" onclick="importData()">📥 导入数据</button>
+            <button class="btn-logout" onclick="logout()">🚪 退出账号</button>
+        </div>
+
+        <!-- 隐藏的文件输入框用于导入 -->
+        <input type="file" id="import-file" style="display:none;" accept=".json" onchange="handleImportFile(event)">
+
+    </div>
+
+    <!-- 找回密码弹窗 -->
+    <div id="reset-password-modal" onclick="closeResetPasswordModal(event)">
+        <div class="password-modal-content" onclick="event.stopPropagation()">
+            <h2>🔑 找回密码</h2>
+            
+            <input type="text" id="reset-username" class="auth-input" placeholder="输入账号">
+            <div style="background: #f0f0f0; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 14px; color: #666;">
+                💡 提示：输入你的账号，新密码将重置为 <strong>123456</strong>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn-approve" onclick="handleResetPassword()">确认重置</button>
+                <button class="btn-reject" onclick="closeResetPasswordModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码弹窗 -->
+    <div id="password-modal" onclick="closePasswordModal(event)">
+        <div class="password-modal-content" onclick="event.stopPropagation()">
+            <h2>🔐 修改密码</h2>
+            
+            <input type="password" id="old-password" class="auth-input" placeholder="输入旧密码">
+            <input type="password" id="new-password" class="auth-input" placeholder="输入新密码（至少6位）">
+            <input type="password" id="confirm-password" class="auth-input" placeholder="再次输入新密码">
+            
+            <div class="modal-buttons">
+                <button class="btn-approve" onclick="savePassword()">确认修改</button>
+                <button class="btn-reject" onclick="closePasswordModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 军衔档案弹窗 -->
+    <div id="rank-modal" onclick="closeRankModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>🏆 军衔档案系统</h2>
+                <p>荣耀晋升之路</p>
+            </div>
+            
+            <div class="current-status">
+                <div class="rank" id="modal-current-rank">🌑 预备兵</div>
+                <div class="score" id="modal-current-score">当前荣耀：0 ⭐</div>
+                <div class="progress-info" id="modal-progress-info">加油！还差 50 分晋升二等兵</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="modal-progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 15px; color: #333;">📄 军衔一览表</h3>
+            <table class="rank-table" id="rank-table"></table>
+            
+            <button class="btn-close-modal" onclick="closeRankModal()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // ==============================
+        // 🦁 荣耀系统 v12.0 核心重构
+        // 目标：登录双后门 + /tasks onValue 实时渲染 + pending 置顶审批 + /history 成长足迹
+        // ==============================
+
+        // ========== 全局状态 ==========
+        let currentUser = null;
+        let currentScore = 0;
+
+        // 云端任务缓存（来自 /tasks）
+        let cloudTasks = []; // [{ _key, taskId, name, reward, category, status, submitterUsername, submitterName, createTime }]
+        let cloudTasksByKey = {};
+        let tasksValueListenerAttached = false;
+
+        const STORAGE = {
+            USERS: 'users_v8',
+            SESSION: 'session_user_v12',
+            BOUNTY: 'bountyTasks_v8',
+            CHILD_FILTER: 'child_filter_v12'
+        };
+
+        function getSavedChildFilter() {
+            try {
+                const v = localStorage.getItem(STORAGE.CHILD_FILTER);
+                return v || 'all';
+            } catch (_) {
+                return 'all';
+            }
+        }
+
+        function setSavedChildFilter(v) {
+            try {
+                localStorage.setItem(STORAGE.CHILD_FILTER, v || 'all');
+            } catch (_) {}
+        }
+
+        function getEffectiveChildFilter() {
+            if (!currentUser) return 'all';
+            if (currentUser.role === 'admin') return getSavedChildFilter();
+            // 孩子端：默认只看自己的任务/足迹
+            return currentUser.username;
+        }
+
+        function normalizeChildId(task) {
+            if (!task) return '';
+            return task.childId || task.submitterUsername || '';
+        }
+
+        function taskPassesChildFilter(task) {
+            const f = getEffectiveChildFilter();
+            if (f === 'all') return true;
+            return normalizeChildId(task) === f;
+        }
+
+        function listExecutorUsers() {
+            const users = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
+            return (users || []).filter(u => u && u.username && u.role === 'executor');
+        }
+
+        function setupChildFilterUI() {
+            const wrap = document.getElementById('child-filter-wrap');
+            const sel = document.getElementById('child-filter');
+            if (!wrap || !sel) return;
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                // 管理者以外不展示也不需要维护
+                try { sel.innerHTML = ''; } catch (_) {}
+                return;
+            }
+
+            const execUsers = listExecutorUsers();
+            const options = [{ value: 'all', label: '全部孩子' }];
+            execUsers.forEach(u => {
+                const label = `${u.nickname || u.username}（${u.username}）`;
+                options.push({ value: u.username, label });
+            });
+
+            sel.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+
+            const saved = getSavedChildFilter();
+            const exists = options.some(o => o.value === saved);
+            sel.value = exists ? saved : 'all';
+            if (!exists) setSavedChildFilter('all');
+        }
+
+        function onChildFilterChange() {
+            const sel = document.getElementById('child-filter');
+            if (!sel) return;
+            setSavedChildFilter(sel.value);
+            try { renderPendingList(); } catch (_) {}
+        }
+
+        function safeJsonParse(text, fallback) {
+            try {
+                if (!text) return fallback;
+                return JSON.parse(text);
+            } catch (_) {
+                return fallback;
+            }
+        }
+
+        // ========== 用户系统初始化 ==========
+        function initUserSystem() {
+            try {
+                let users = safeJsonParse(localStorage.getItem(STORAGE.USERS), []);
+                if (!Array.isArray(users)) users = [];
+
+                if (users.length === 0) {
+                    users = [
+                        { username: 'dad', password: '654321', nickname: '爸爸', role: 'admin' },
+                        { username: 'zaki', password: '123456', nickname: 'Zaki', role: 'executor' }
+                    ];
+                    localStorage.setItem(STORAGE.USERS, JSON.stringify(users));
+                }
+                return users;
+            } catch (e) {
+                console.error('❌ initUserSystem 失败:', e);
+                return [];
+            }
+        }
+
+        // Safari 隐私模式提示
+        try {
+            localStorage.setItem('safari_test', '1');
+            localStorage.removeItem('safari_test');
+        } catch (e) {
+            setTimeout(() => {
+                alert('⚠️ 检测到Safari隐私保护阻止了应用\n\n请在Safari中：\n1. 点击地址栏左侧“aA”\n2. 选择“网站设置”\n3. 关闭“阻止跨站跟踪”\n4. 允许所有Cookie\n\n或使用Chrome浏览器访问');
+            }, 300);
+        }
+
+        let allUsers = initUserSystem();
+
+        function ensureUserInLocalList(user) {
+            try {
+                allUsers = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
+                if (!Array.isArray(allUsers)) allUsers = [];
+
+                const idx = allUsers.findIndex(u => u && u.username === user.username);
+                if (idx === -1) {
+                    allUsers.push(user);
+                } else {
+                    // 以最新为准（双保险修复）
+                    allUsers[idx] = { ...allUsers[idx], ...user };
+                }
+                localStorage.setItem(STORAGE.USERS, JSON.stringify(allUsers));
+            } catch (e) {
+                console.warn('⚠️ ensureUserInLocalList 失败:', e);
+            }
+        }
+
+        function persistSession(user) {
+            try {
+                localStorage.setItem(STORAGE.SESSION, JSON.stringify({
+                    user,
+                    at: Date.now()
+                }));
+            } catch (e) {
+                console.warn('⚠️ persistSession 失败:', e);
+            }
+        }
+
+        function loadSession() {
+            const raw = safeJsonParse(localStorage.getItem(STORAGE.SESSION), null);
+            if (!raw || !raw.user) return null;
+            return raw.user;
+        }
+
+        // ========== 静态任务数据 ==========
+        const tasks = {
+            core: [
+                { id: 'c1', name: '📝 独立完成作业（不用催）', reward: 10 },
+                { id: 'c2', name: '🎯 按时起床上学', reward: 5 }
+            ],
+            daily: [
+                { id: 'd1', name: '🎻 专注练琴 30分钟', reward: 5 },
+                { id: 'd2', name: '📖 晨读/背诵', reward: 3 },
+                { id: 'd3', name: '🏃 户外运动 1小时', reward: 5 }
+            ],
+            bounty: safeJsonParse(localStorage.getItem(STORAGE.BOUNTY), [
+                { id: 'b1', name: '👶 带弟弟沫沫玩耍', reward: 10 },
+                { id: 'b2', name: '🔧 协助爸爸修理东西', reward: 15 }
+            ])
+        };
+
+        const penalties = [
+            { id: 'p1', name: '😡 对长辈大吼大叫/顶嘴', penalty: -20 },
+            { id: 'p2', name: '🐢 磨磨蹭蹭，不守时间', penalty: -10 },
+            { id: 'p3', name: '📱 未经允许玩电子产品', penalty: -50 }
+        ];
+
+        const storeItems = [
+            { id: 's1', name: '🎮 玩手机 30分钟', cost: 50 },
+            { id: 's2', name: '🎬 看电影一部', cost: 100 },
+            { id: 's3', name: '👑 周末指挥官（决定全家去哪玩）', cost: 300 },
+            { id: 's4', name: '🛠️ 工具箱使用权（和爸爸一起）', cost: 100 }
+        ];
+
+        const rankSystem = [
+            { score: 0, icon: '🌑', name: '预备兵' },
+            { score: 50, icon: '⭐️', name: '二等兵' },
+            { score: 150, icon: '⭐️⭐️', name: '下士' },
+            { score: 300, icon: '🌙', name: '中士' },
+            { score: 600, icon: '🌙🌙', name: '上尉' },
+            { score: 1000, icon: '☀️', name: '少校' },
+            { score: 2000, icon: '👑', name: '五星上将' }
+        ];
+
+        // ========== 工具函数 ==========
+        function showMessage(msg, type = 'info') {
+            const box = document.getElementById('message-box');
+            if (!box) return;
+            const bgColor = type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db';
+            box.innerHTML = `<div style="background:${bgColor}; color:white; padding:15px 20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-size:16px; animation:fadeIn 0.3s;">${msg}</div>`;
+            setTimeout(() => box.innerHTML = '', 3000);
+        }
+
+        function fireworks() {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        function formatDateTime(ts) {
+            const d = new Date(ts);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        // ========== 登录/注册逻辑 ==========
+        function showLogin() {
+            document.getElementById('login-box').style.display = 'block';
+            document.getElementById('register-box').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('register-box').style.display = 'block';
+        }
+
+        function loadUserLocalScore(username) {
+            try {
+                return parseInt(localStorage.getItem(`score_${username}_v8`), 10) || 0;
+            } catch (_) {
+                return 0;
+            }
+        }
+
+        function saveUserLocalScore(username, score) {
+            try {
+                localStorage.setItem(`score_${username}_v8`, String(score || 0));
+            } catch (_) {}
+        }
+
+        function handleLogin() {
+            const usernameRaw = (document.getElementById('username').value || '');
+            const passwordRaw = (document.getElementById('password').value || '');
+            const username = usernameRaw.trim();
+            const password = passwordRaw.trim();
+            const usernameLower = (username || '').toLowerCase();
+
+            // 1) 🔐 登录双重保险：硬编码后门（必须在最开始）
+            if (usernameLower === 'dad' && password === '654321') {
+                const user = { username: 'dad', password: '654321', nickname: '爸爸', role: 'admin' };
+                currentUser = user;
+                ensureUserInLocalList(user);
+                persistSession(user);
+                currentScore = loadUserLocalScore(user.username);
+                showMessage('✅ dad 后门登录成功（管理员）', 'success');
+                enterApp();
+                return;
+            }
+            if (usernameLower === 'zaki' && password === '123456') {
+                const user = { username: 'zaki', password: '123456', nickname: 'Zaki', role: 'executor' };
+                currentUser = user;
+                ensureUserInLocalList(user);
+                persistSession(user);
+                currentScore = loadUserLocalScore(user.username);
+                showMessage('✅ zaki 后门登录成功（执行者）', 'success');
+                enterApp();
+                return;
+            }
+
+            // 正常登录
+            if (!username) {
+                showMessage('❌ 登录失败：请输入账号', 'error');
+                return;
+            }
+            if (!password) {
+                showMessage('❌ 登录失败：请输入密码', 'error');
+                return;
+            }
+
+            allUsers = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
+            if (!Array.isArray(allUsers) || allUsers.length === 0) {
+                showMessage('❌ 登录失败：本机没有账号数据（可能清过缓存/换了手机），请先注册或用 dad/654321 登录', 'error');
+                return;
+            }
+
+            const exactUser = (allUsers || []).find(u => u && u.username === username);
+            if (exactUser) {
+                if (exactUser.password !== password) {
+                    showMessage('❌ 登录失败：密码错误', 'error');
+                    return;
+                }
+
+                currentUser = exactUser;
+                ensureUserInLocalList(exactUser);
+                persistSession(exactUser);
+                currentScore = loadUserLocalScore(exactUser.username);
+                enterApp();
+                return;
+            }
+
+            // 兼容手机自动首字母大写：仅当“用户名大小写不同”且能唯一匹配时尝试放行
+            const caseCandidates = (allUsers || []).filter(u => u && typeof u.username === 'string' && u.username.toLowerCase() === usernameLower);
+            if (caseCandidates.length === 1) {
+                const u = caseCandidates[0];
+                if (u.password === password) {
+                    currentUser = u;
+                    ensureUserInLocalList(u);
+                    persistSession(u);
+                    currentScore = loadUserLocalScore(u.username);
+                    showMessage('✅ 已自动识别账号大小写（手机可能会自动首字母大写）', 'success');
+                    enterApp();
+                    return;
+                }
+                showMessage('❌ 登录失败：账号存在，但密码错误（注意：手机可能自动改了账号大小写）', 'error');
+                return;
+            }
+
+            if (caseCandidates.length > 1) {
+                showMessage('❌ 登录失败：检测到同名账号（仅大小写不同）冲突，请用正确大小写的账号登录', 'error');
+                return;
+            }
+
+            showMessage('❌ 登录失败：账号不存在（请检查是否打错/是否需要先注册）', 'error');
+            return;
+        }
+
+        function handleRegister() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+            const nickname = document.getElementById('reg-nickname').value.trim();
+            const role = document.getElementById('reg-role').value;
+
+            if (!username || username.length < 3 || username.length > 20) {
+                return showMessage('⚠️ 账号需要3-20个字符', 'error');
+            }
+            if (!password || password.length < 6) {
+                return showMessage('⚠️ 密码至少需要6位', 'error');
+            }
+            if (!nickname) {
+                return showMessage('⚠️ 请输入昵称', 'error');
+            }
+            if (!role) {
+                return showMessage('⚠️ 请选择身份', 'error');
+            }
+
+            allUsers = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
+            if ((allUsers || []).find(u => u && u.username === username)) {
+                return showMessage('❌ 账号已存在，请换个名字', 'error');
+            }
+
+            const newUser = { username, password, nickname, role };
+            allUsers.push(newUser);
+            localStorage.setItem(STORAGE.USERS, JSON.stringify(allUsers));
+            showMessage('✅ 注册成功，请登录', 'success');
+            setTimeout(showLogin, 800);
+
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+            document.getElementById('reg-nickname').value = '';
+            document.getElementById('reg-role').value = '';
+        }
+
+        function enterApp() {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-page').style.display = 'block';
+
+            const roleText = currentUser.role === 'admin' ? '🛡️ 管理者' : '⚔️ 执行者';
+            document.getElementById('user-info').innerHTML = `欢迎回来 <span class="user-role">${roleText}</span> (${currentUser.nickname})`;
+
+            // 根据角色显示/隐藏内容
+            const adminElements = document.querySelectorAll('.admin-only');
+            const executorElements = document.querySelectorAll('.executor-only');
+            if (currentUser.role === 'admin') {
+                adminElements.forEach(el => el.classList.remove('hide'));
+                executorElements.forEach(el => el.classList.add('hide'));
+            } else {
+                adminElements.forEach(el => el.classList.add('hide'));
+                executorElements.forEach(el => el.classList.remove('hide'));
+            }
+
+            // 方案1：管理员端可按孩子筛选待审批/足迹
+            setupChildFilterUI();
+
+            // 2) ⚡️ 实时同步：必须监听 /tasks 的 onValue，并在变化时立刻 renderTasks()
+            startTasksRealtimeSync();
+
+            refreshUI();
+        }
+
+        function logout() {
+            try {
+                saveData();
+            } catch (_) {}
+            stopTasksRealtimeSync();
+
+            document.getElementById('app-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            currentUser = null;
+
+            try { localStorage.removeItem(STORAGE.SESSION); } catch (_) {}
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            showLogin();
+        }
+
+        function openClearTool() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            const ok = confirm('🧹 修复登录（清理缓存）\n\n将打开清理页，执行：\n- 清除本地数据\n- 注销Service Worker\n- 清空离线缓存\n\n清理后需要重新登录/重新配置云参数（如你之前手动配置过）。\n\n确定继续吗？');
+            if (!ok) return;
+            window.location.href = './clear.html';
+        }
+
+        // ========== Firebase：/tasks 实时监听 ==========
+        function getTasksRef() {
+            if (typeof database === 'undefined') return null;
+            return database.ref('/tasks');
+        }
+
+        function getHistoryRef() {
+            if (typeof database === 'undefined') return null;
+            return database.ref('/history');
+        }
+
+        function startTasksRealtimeSync() {
+            if (!currentUser) return;
+            const ref = getTasksRef();
+            if (!ref) {
+                console.log('⚠️ Firebase 未配置，跳过 /tasks 监听');
+                return;
+            }
+            if (tasksValueListenerAttached) return;
+            tasksValueListenerAttached = true;
+
+            ref.on('value', (snapshot) => {
+                const list = [];
+                const map = {};
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (!val) return;
+                    const item = { ...val, _key: child.key };
+                    list.push(item);
+                    map[item._key] = item;
+                });
+
+                // 3) 🔝 pending 强制置顶（即便未来有非pending状态也不会乱）
+                list.sort((a, b) => {
+                    const ap = (a.status === 'pending') ? 0 : 1;
+                    const bp = (b.status === 'pending') ? 0 : 1;
+                    if (ap !== bp) return ap - bp;
+                    const at = a.createTime || 0;
+                    const bt = b.createTime || 0;
+                    return bt - at;
+                });
+
+                cloudTasks = list;
+                cloudTasksByKey = map;
+
+                // 2) 任何变化：立刻 renderTasks()，禁止手动刷新
+                try { renderTasks(); } catch (_) {}
+                try { renderPendingList(); } catch (_) {}
+            }, (err) => {
+                console.error('❌ /tasks onValue 监听失败:', err);
+            });
+        }
+
+        function stopTasksRealtimeSync() {
+            const ref = getTasksRef();
+            if (ref && tasksValueListenerAttached) {
+                try { ref.off('value'); } catch (_) {}
+            }
+            tasksValueListenerAttached = false;
+            cloudTasks = [];
+            cloudTasksByKey = {};
+        }
+
+        // ========== 核心业务：提交/审批/历史 ==========
+        function submitTask(taskId, taskName, reward, category) {
+            if (!currentUser || currentUser.role !== 'executor') return;
+
+            // 防重复：同一任务若已有 pending，就不再提交
+            const alreadyPending = cloudTasks.some(t =>
+                t && t.status === 'pending' && t.taskId === taskId && t.submitterUsername === currentUser.username
+            );
+            if (alreadyPending) {
+                showMessage('⏳ 这个任务正在审核中', 'error');
+                return;
+            }
+
+            const ref = getTasksRef();
+            if (!ref) {
+                showMessage('⚠️ 云端未配置，无法提交', 'error');
+                return;
+            }
+
+            const payload = {
+                taskId,
+                name: taskName,
+                reward,
+                category,
+                status: 'pending',
+                // 方案1：按孩子隔离（同库分字段）
+                childId: currentUser.username,
+                childName: currentUser.nickname,
+                submitterUsername: currentUser.username,
+                submitterName: currentUser.nickname,
+                createTime: Date.now()
+            };
+
+            ref.push().set(payload)
+                .then(() => {
+                    showMessage('✅ 已提交给管理者审核', 'success');
+                })
+                .catch((e) => {
+                    console.error('❌ 提交失败:', e);
+                    showMessage('❌ 提交失败：' + e.message, 'error');
+                });
+        }
+
+        // 4) 📅 批准：从 /tasks 移到 /history，并写 finishTime
+        function approveTaskCloud(taskKey) {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            const task = cloudTasksByKey[taskKey];
+            if (!task) {
+                showMessage('⚠️ 任务不存在或已被处理', 'error');
+                return;
+            }
+
+            const tasksRef = getTasksRef();
+            const historyRef = getHistoryRef();
+            if (!tasksRef || !historyRef) {
+                showMessage('⚠️ 云端未配置，无法审批', 'error');
+                return;
+            }
+
+            const finishTime = Date.now();
+            const historyItem = {
+                ...task,
+                status: 'approved',
+                approverUsername: currentUser.username,
+                approverName: currentUser.nickname,
+                finishTime
+            };
+            delete historyItem._key;
+
+            historyRef.push().set(historyItem)
+                .then(() => tasksRef.child(taskKey).remove())
+                .then(() => {
+                    // 本地分数逻辑保持不变：给当前登录者加分（现有系统行为）
+                    currentScore += (parseInt(task.reward, 10) || 0);
+                    saveData();
+                    refreshUI();
+                    showMessage('✅ 批准成功', 'success');
+                    fireworks();
+                })
+                .catch((e) => {
+                    console.error('❌ 审批失败:', e);
+                    showMessage('❌ 审批失败：' + e.message, 'error');
+                });
+        }
+
+        // 成长足迹：按日期倒序展示 /history
+        function openHistory() {
+            const ref = getHistoryRef();
+            if (!ref) {
+                alert('⚠️ 云端未配置，无法查看成长足迹');
+                return;
+            }
+
+            ref.once('value').then(snapshot => {
+                const items = [];
+                snapshot.forEach(child => {
+                    const val = child.val();
+                    if (!val) return;
+                    items.push({ ...val, _key: child.key });
+                });
+
+                items.sort((a, b) => (b.finishTime || 0) - (a.finishTime || 0));
+
+                // 方案1：按孩子过滤（管理员可选择全部/某一个；孩子端默认只看自己）
+                const f = getEffectiveChildFilter();
+                const filtered = (f === 'all') ? items : items.filter(it => normalizeChildId(it) === f);
+
+                if (filtered.length === 0) {
+                    alert('📜 成长足迹\n\n暂无记录');
+                    return;
+                }
+
+                const lines = filtered.slice(0, 200).map(it => {
+                    const t = formatDateTime(it.finishTime || it.createTime || Date.now());
+                    const who = it.childName || it.submitterName || it.childId || it.submitterUsername || '孩子';
+                    const reward = (parseInt(it.reward, 10) || 0);
+                    return `${t}  ${who} 完成了 ${it.name}  +${reward}⭐`;
+                });
+
+                alert('📜 成长足迹（倒序）\n\n' + lines.join('\n'));
+            }).catch(e => {
+                alert('❌ 读取成长足迹失败：' + e.message);
+            });
+        }
+
+        // ========== 惩罚/悬赏/商店（保留原行为） ==========
+        function applyPenalty(penaltyPoints, penaltyName) {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            if (confirm(`确定对用户进行扣分【${penaltyName}】(${penaltyPoints}⭐)吗？`)) {
+                currentScore += penaltyPoints;
+                saveData();
+                refreshUI();
+                showMessage(`⚠️ ${penaltyName}`, 'error');
+            }
+        }
+
+        function addBounty() {
+            const input = document.getElementById('bounty-input');
+            const name = (input && input.value || '').trim();
+            if (!name) return showMessage('⚠️ 请输入任务名称', 'error');
+
+            const newBounty = {
+                id: 'b_' + Date.now(),
+                name: '📌 ' + name,
+                reward: 10
+            };
+            tasks.bounty.push(newBounty);
+            saveBountyTasks();
+            refreshUI();
+            input.value = '';
+            showMessage('✅ 悬赏已发布', 'success');
+        }
+
+        function deleteBounty(id) {
+            tasks.bounty = tasks.bounty.filter(t => t.id !== id);
+            saveBountyTasks();
+            refreshUI();
+            showMessage('🗑️ 任务已删除', 'info');
+        }
+
+        function buyItem(cost, itemName) {
+            if (currentScore < cost) {
+                return showMessage('❌ 荣耀值不足，无法兑换', 'error');
+            }
+            if (confirm(`确定花费 ${cost} ⭐ 兑换【${itemName}】吗？`)) {
+                currentScore -= cost;
+                saveData();
+                refreshUI();
+                showMessage(`✅ 兑换成功：${itemName}`, 'success');
+            }
+        }
+
+        // ========== 密码修改（保留） ==========
+        function openPasswordModal() {
+            document.getElementById('password-modal').classList.add('show');
+        }
+
+        function closePasswordModal(event) {
+            if (!event || event.target.id === 'password-modal') {
+                document.getElementById('password-modal').classList.remove('show');
+                document.getElementById('old-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            }
+        }
+
+        function savePassword() {
+            const oldPwd = document.getElementById('old-password').value;
+            const newPwd = document.getElementById('new-password').value;
+            const confirmPwd = document.getElementById('confirm-password').value;
+
+            if (!currentUser) return;
+            if (oldPwd !== currentUser.password) {
+                return showMessage('❌ 旧密码错误', 'error');
+            }
+            if (newPwd.length < 6) {
+                return showMessage('⚠️ 新密码至少6位', 'error');
+            }
+            if (newPwd !== confirmPwd) {
+                return showMessage('❌ 两次输入的密码不一致', 'error');
+            }
+
+            allUsers = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
+            const idx = allUsers.findIndex(u => u && u.username === currentUser.username);
+            if (idx >= 0) {
+                allUsers[idx].password = newPwd;
+                localStorage.setItem(STORAGE.USERS, JSON.stringify(allUsers));
+            }
+            currentUser.password = newPwd;
+            persistSession(currentUser);
+            closePasswordModal();
+            showMessage('✅ 密码修改成功', 'success');
+        }
+
+        // ========== 界面渲染 ==========
+        function refreshUI() {
+            document.getElementById('total-stars').innerText = currentScore;
+            updateRank();
+            renderPenalties();
+            renderPendingList();
+            renderTasks();
+            renderStore();
+        }
+
+        function updateRank() {
+            let currentRank = rankSystem[0];
+            for (let i = rankSystem.length - 1; i >= 0; i--) {
+                if (currentScore >= rankSystem[i].score) {
+                    currentRank = rankSystem[i];
+                    break;
+                }
+            }
+            document.getElementById('rank-badge').innerText = currentRank.icon + ' ' + currentRank.name;
+        }
+
+        function renderPenalties() {
+            const container = document.getElementById('penalty-list');
+            if (!container) return;
+            if (!currentUser || currentUser.role !== 'admin') {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = '';
+            penalties.forEach(penalty => {
+                container.innerHTML += `
+                <div class="task-card penalty">
+                    <div class="task-header">
+                        <span class="task-name">${penalty.name}</span>
+                        <span style="color:#c0392b; font-weight:bold; font-size:15px;">${penalty.penalty} ⭐</span>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn-penalty" onclick="applyPenalty(${penalty.penalty}, '${penalty.name}')">执行扣分</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function renderPendingList() {
+            const list = document.getElementById('pending-list');
+            if (!list) return;
+            if (!currentUser || currentUser.role !== 'admin') return;
+
+            // 3) 🔝 pending 置顶 + ✅ 批准按钮（醒目）
+            const pending = cloudTasks.filter(t => t && t.status === 'pending' && taskPassesChildFilter(t));
+            list.innerHTML = '';
+
+            if (pending.length === 0) {
+                list.innerHTML = '<div style="color:#999; padding:20px; text-align:center; background:white; border-radius:12px;">暂无待审批任务</div>';
+                return;
+            }
+
+            pending.forEach(task => {
+                const timeText = task.createTime ? formatDateTime(task.createTime) : '';
+                const who = task.childName || task.submitterName || task.childId || task.submitterUsername || '孩子';
+                list.innerHTML += `
+                <div class="task-card" style="border-left-color:#27ae60;">
+                    <div class="task-header">
+                        <div>
+                            <div class="task-name">${task.name}</div>
+                            <div style="font-size:12px; color:#999; margin-top:5px;">${who} · ${timeText}</div>
+                        </div>
+                        <span class="pending-badge">pending</span>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn-approve" onclick="approveTaskCloud('${task._key}')">✅ 批准 (+${parseInt(task.reward, 10) || 0})</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function renderTasks() {
+            renderTaskList('core', tasks.core, 'core-tasks');
+            renderTaskList('daily', tasks.daily, 'daily-tasks');
+            renderTaskList('bounty', tasks.bounty, 'bounty-tasks');
+        }
+
+        function renderTaskList(category, taskList, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+
+            taskList.forEach(task => {
+                let actionHtml = '';
+
+                if (currentUser && currentUser.role === 'executor') {
+                    const isPending = cloudTasks.some(t =>
+                        t && t.status === 'pending' && t.taskId === task.id && t.submitterUsername === currentUser.username
+                    );
+
+                    if (isPending) {
+                        actionHtml = `<button class="btn-submit" style="background:#ccc; cursor:not-allowed;" disabled>⏳ 等待审核</button>`;
+                    } else {
+                        actionHtml = `<button class="btn-submit" onclick="submitTask('${task.id}', '${task.name}', ${task.reward}, '${category}')">✋ 我做完了</button>`;
+                    }
+                } else {
+                    actionHtml = `<div style="font-size:12px; color:#999;">任务标准</div>`;
+                    if (category === 'bounty' && currentUser && currentUser.role === 'admin') {
+                        actionHtml += ` <button class="btn-delete" onclick="deleteBounty('${task.id}')" style="margin-left:10px;">删除</button>`;
+                    }
+                }
+
+                container.innerHTML += `
+                <div class="task-card ${category}">
+                    <div class="task-header">
+                        <span class="task-name">${task.name}</span>
+                        <span class="task-reward">+${task.reward} ⭐</span>
+                    </div>
+                    <div class="task-actions">${actionHtml}</div>
+                </div>`;
+            });
+        }
+
+        function renderStore() {
+            const container = document.getElementById('store-items');
+            if (!container) return;
+            container.innerHTML = '';
+
+            storeItems.forEach(item => {
+                const disabled = currentScore < item.cost;
+                const btnStyle = disabled ? 'background:#ccc; cursor:not-allowed;' : '';
+                container.innerHTML += `
+                <div class="store-item">
+                    <div>
+                        <div class="store-name">${item.name}</div>
+                        <div class="store-cost">-${item.cost} ⭐</div>
+                    </div>
+                    <button class="btn-buy" style="${btnStyle}" ${disabled ? 'disabled' : ''} onclick="buyItem(${item.cost}, '${item.name}')">兑换</button>
+                </div>`;
+            });
+        }
+
+        // ========== 军衔档案系统（原逻辑保留） ==========
+        function openRankModal() {
+            let currentRankIndex = 0;
+            for (let i = rankSystem.length - 1; i >= 0; i--) {
+                if (currentScore >= rankSystem[i].score) {
+                    currentRankIndex = i;
+                    break;
+                }
+            }
+            const currentRank = rankSystem[currentRankIndex];
+
+            document.getElementById('modal-current-rank').innerText = currentRank.icon + ' ' + currentRank.name;
+            document.getElementById('modal-current-score').innerText = `当前荣耀：${currentScore} ⭐`;
+
+            if (currentRankIndex < rankSystem.length - 1) {
+                const nextRank = rankSystem[currentRankIndex + 1];
+                const needed = nextRank.score - currentScore;
+                const progress = ((currentScore - currentRank.score) / (nextRank.score - currentRank.score) * 100).toFixed(1);
+
+                document.getElementById('modal-progress-info').innerText = `加油！还差 ${needed} 分晋升 ${nextRank.name}`;
+                document.getElementById('modal-progress-fill').style.width = progress + '%';
+            } else {
+                document.getElementById('modal-progress-info').innerText = '🎉 已达巅峰！你是最强的五星上将！';
+                document.getElementById('modal-progress-fill').style.width = '100%';
+            }
+
+            const table = document.getElementById('rank-table');
+            table.innerHTML = '';
+            rankSystem.forEach((rank, index) => {
+                const isCurrent = (index === currentRankIndex);
+                const rowClass = isCurrent ? 'current-rank' : '';
+                const statusText = isCurrent ? '【当前】' : (currentScore >= rank.score ? '✓ 已达成' : '');
+
+                table.innerHTML += `
+                <tr class="${rowClass}">
+                    <td class="rank-icon">${rank.icon}</td>
+                    <td class="rank-name">${rank.name} ${statusText}</td>
+                    <td class="rank-score">${rank.score} ⭐</td>
+                </tr>`;
+            });
+
+            document.getElementById('rank-modal').classList.add('show');
+        }
+
+        function closeRankModal(event) {
+            if (!event || event.target.id === 'rank-modal') {
+                document.getElementById('rank-modal').classList.remove('show');
+            }
+        }
+
+        // ========== 数据导出/导入（原逻辑保留） ==========
+        function exportData() {
+            const allData = {
+                users: safeJsonParse(localStorage.getItem(STORAGE.USERS), []),
+                bountyTasks: safeJsonParse(localStorage.getItem(STORAGE.BOUNTY), []),
+                timestamp: new Date().toISOString(),
+                deviceName: navigator.userAgent.substring(0, 50)
+            };
+
+            const users = allData.users || [];
+            const userDataMap = {};
+            users.forEach(user => {
+                userDataMap[user.username] = {
+                    score: parseInt(localStorage.getItem(`score_${user.username}_v8`), 10) || 0
+                };
+            });
+            allData.userScores = userDataMap;
+
+            const dataStr = JSON.stringify(allData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `荣耀系统数据备份_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showMessage('✅ 数据已导出，请保存好文件', 'success');
+        }
+
+        function importData() {
+            document.getElementById('import-file').click();
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!importedData.users || !importedData.userScores) {
+                        return showMessage('❌ 数据格式错误，无法导入', 'error');
+                    }
+
+                    if (confirm(`📥 确定要导入这份数据吗？\n时间: ${importedData.timestamp.split('T')[0]}\n\n⚠️ 注意：这会覆盖现有数据！`)) {
+                        localStorage.setItem(STORAGE.USERS, JSON.stringify(importedData.users));
+                        if (importedData.bountyTasks) {
+                            localStorage.setItem(STORAGE.BOUNTY, JSON.stringify(importedData.bountyTasks));
+                        }
+
+                        Object.keys(importedData.userScores).forEach(username => {
+                            const userData = importedData.userScores[username];
+                            localStorage.setItem(`score_${username}_v8`, String(userData.score || 0));
+                        });
+
+                        allUsers = importedData.users;
+                        showMessage('✅ 数据导入成功！请重新登录', 'success');
+                        setTimeout(() => logout(), 800);
+                    }
+                } catch (error) {
+                    showMessage('❌ 文件读取失败：' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ========== 数据持久化 ==========
+        function saveData() {
+            if (!currentUser) return;
+            saveUserLocalScore(currentUser.username, currentScore);
+        }
+
+        function saveBountyTasks() {
+            localStorage.setItem(STORAGE.BOUNTY, JSON.stringify(tasks.bounty));
+        }
+
+        // ========== Firebase 连接测试（改为根节点 ping） ==========
+        function testFirebase() {
+            try {
+                if (typeof firebase === 'undefined' || typeof database === 'undefined') {
+                    const msg = '⚠️ Firebase 未加载或配置未完成';
+                    showMessage(msg, 'error');
+                    alert(msg);
+                    return;
+                }
+                const ref = database.ref('/ping');
+                const payload = { device: navigator.userAgent.substring(0, 60), at: Date.now() };
+                ref.set(payload)
+                    .then(() => ref.once('value'))
+                    .then((snap) => {
+                        if (snap && snap.exists()) {
+                            const msg = '✅ 云连接正常，已完成读写测试';
+                            showMessage(msg, 'success');
+                            alert(msg);
+                        } else {
+                            const msg = '❌ 读取失败，请检查数据库规则';
+                            showMessage(msg, 'error');
+                            alert(msg);
+                        }
+                    })
+                    .catch((e) => {
+                        const msg = '❌ 云连接异常：' + e.message;
+                        showMessage(msg, 'error');
+                        alert(msg);
+                    });
+            } catch (e) {
+                const msg = '❌ 测试失败：' + e.message;
+                showMessage(msg, 'error');
+                alert(msg);
+            }
+        }
+
+        console.log('🦁 荣耀系统 v12.1.2 已加载');
+
+        // ========== PWA Service Worker 注册 ==========
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('✅ Service Worker 已注册，应用可离线使用'))
+                    .catch((error) => console.log('⚠️ Service Worker 注册失败:', error));
+            });
+        }
+
+        // PWA 安装提示处理
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('💾 可以安装为应用');
+        });
+
+        // ========== 启动时：若存在 session，则自动恢复登录（刷新不丢） ==========
+        window.addEventListener('load', () => {
+            const sessUser = loadSession();
+            if (sessUser && sessUser.username && sessUser.role) {
+                currentUser = sessUser;
+                ensureUserInLocalList(sessUser);
+                currentScore = loadUserLocalScore(sessUser.username);
+                enterApp();
+            } else {
+                showLogin();
+            }
+        });
+    </script>
+</body>
+</html>
