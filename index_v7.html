@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🦁 荣耀系统 v7.0</title>
+    <link rel="apple-touch-icon" href="https://github.githubassets.com/images/icons/emoji/unicode/1f981.png">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1c1c1e;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* === 登录页 === */
+        #login-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        .login-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-box h1 { text-align: center; margin-bottom: 10px; font-size: 28px; }
+        .login-box p { text-align: center; color: #666; margin-bottom: 25px; font-size: 14px; }
+        .login-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        .login-input:focus { border-color: #667eea; outline: none; }
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .login-hint { text-align: center; margin-top: 15px; font-size: 12px; color: #999; }
+
+        /* === 主应用页 === */
+        #app-page {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .rank-badge { font-size: 18px; color: #667eea; font-weight: bold; margin-bottom: 10px; }
+        .stars-display { font-size: 48px; font-weight: 800; color: #333; }
+        .user-info { margin-top: 10px; color: #666; font-size: 14px; }
+
+        /* 板块标题 */
+        .section-title {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 16px;
+            margin: 20px 0 15px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title.core { color: #e74c3c; }
+        .section-title.daily { color: #f39c12; }
+        .section-title.bounty { color: #9b59b6; }
+        .section-title.store { color: #3498db; }
+
+        /* 任务卡片 */
+        .task-card {
+            background: white;
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 5px solid #ccc;
+        }
+        .task-card.core { border-left-color: #e74c3c; }
+        .task-card.daily { border-left-color: #f39c12; }
+        .task-card.bounty { border-left-color: #9b59b6; }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .task-name { font-weight: bold; font-size: 17px; }
+        .task-reward { color: #27ae60; font-weight: bold; font-size: 15px; }
+        .task-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pending-badge {
+            background: #ffcc00;
+            color: #555;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* 按钮 */
+        button {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        .btn-submit { background: #3498db; }
+        .btn-approve { background: #27ae60; }
+        .btn-crit { background: #e67e22; }
+        .btn-reject { background: #e74c3c; }
+        .btn-delete { background: #95a5a6; }
+        .btn-buy { background: #9b59b6; }
+        .btn-logout { background: #95a5a6; width: 100%; padding: 15px; margin-top: 30px; font-size: 16px; }
+
+        /* 输入区 */
+        .input-area {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .input-area h3 { margin-bottom: 12px; font-size: 16px; color: #666; }
+        .input-group { display: flex; gap: 10px; }
+        .input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        .input-group input:focus { border-color: #9b59b6; outline: none; }
+        .input-group button { white-space: nowrap; }
+
+        /* 商店卡片 */
+        .store-item {
+            background: white;
+            padding: 15px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .store-name { font-weight: bold; font-size: 16px; }
+        .store-cost { color: #e74c3c; font-weight: bold; font-size: 14px; margin-top: 5px; }
+
+        /* 待审批区域 */
+        #dad-zone {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        /* 提示框 */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            max-width: 80%;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="message-box"></div>
+
+    <!-- 登录页 -->
+    <div id="login-page">
+        <div class="login-box">
+            <h1>🦁 荣耀系统 v7.0</h1>
+            <p>请选择身份登录</p>
+            
+            <input type="text" id="username" class="login-input" placeholder="账号 (kid / dad)" onkeypress="if(event.key==='Enter') handleLogin()">
+            <input type="password" id="password" class="login-input" placeholder="密码" onkeypress="if(event.key==='Enter') handleLogin()">
+            
+            <button class="btn-login" onclick="handleLogin()">🚀 进入系统</button>
+            
+            <div class="login-hint">
+                默认密码：123456<br>
+                孩子账号: kid | 爸爸账号: dad
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用页 -->
+    <div id="app-page">
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="rank-badge" id="rank-badge">🌑 预备兵</div>
+            <div class="stars-display"><span id="total-stars">0</span> ⭐</div>
+            <div class="user-info" id="user-info">欢迎回来</div>
+        </div>
+
+        <!-- 爸爸审批区 -->
+        <div id="dad-zone">
+            <div class="section-title" style="color: #e67e22;">⏳ 待审批任务</div>
+            <div id="pending-list"></div>
+        </div>
+
+        <!-- 板块一：核心使命 -->
+        <div class="section-title core">🛡️ 核心使命</div>
+        <div id="core-tasks"></div>
+
+        <!-- 板块二：每日充能 -->
+        <div class="section-title daily">⚡ 每日充能</div>
+        <div id="daily-tasks"></div>
+
+        <!-- 板块三：赏金悬赏 -->
+        <div class="section-title bounty">💰 赏金悬赏</div>
+        
+        <!-- 发布悬赏输入框 -->
+        <div class="input-area">
+            <h3>📝 发布新悬赏</h3>
+            <div class="input-group">
+                <input type="text" id="bounty-input" placeholder="输入任务名称，例如：倒垃圾">
+                <button class="btn-submit" onclick="addBounty()">发布悬赏</button>
+            </div>
+        </div>
+        
+        <div id="bounty-tasks"></div>
+
+        <!-- 军需商店 -->
+        <div class="section-title store">🏪 军需商店</div>
+        <div id="store-items"></div>
+
+        <!-- 退出按钮 -->
+        <button class="btn-logout" onclick="logout()">🚪 退出账号</button>
+
+    </div>
+
+    <script>
+        // ========== 数据初始化 ==========
+        let currentScore = parseInt(localStorage.getItem('honorScore_v7')) || 0;
+        let pendingTasks = JSON.parse(localStorage.getItem('pendingTasks_v7')) || [];
+        let currentUser = null;
+
+        // 任务数据结构
+        const tasks = {
+            core: [
+                { id: 'c1', name: '📝 独立完成作业（不用催）', reward: 10 },
+                { id: 'c2', name: '🎯 按时起床上学', reward: 5 }
+            ],
+            daily: [
+                { id: 'd1', name: '🎻 专注练琴 30分钟', reward: 5 },
+                { id: 'd2', name: '📖 晨读/背诵', reward: 3 },
+                { id: 'd3', name: '🏃 户外运动 1小时', reward: 5 }
+            ],
+            bounty: JSON.parse(localStorage.getItem('bountyTasks_v7')) || [
+                { id: 'b1', name: '👶 带弟弟沫沫玩耍', reward: 10 },
+                { id: 'b2', name: '🔧 协助爸爸修理东西', reward: 15 }
+            ]
+        };
+
+        // 商店物品
+        const storeItems = [
+            { id: 's1', name: '🎮 玩手机 30分钟', cost: 50 },
+            { id: 's2', name: '🎬 看电影一部', cost: 100 },
+            { id: 's3', name: '👑 周末指挥官（决定全家去哪玩）', cost: 300 },
+            { id: 's4', name: '🛠️ 工具箱使用权（和爸爸一起）', cost: 100 }
+        ];
+
+        // ========== 登录逻辑 ==========
+        function handleLogin() {
+            const user = document.getElementById('username').value.toLowerCase().trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if ((user === 'kid' || user === 'dad') && pass === '123456') {
+                currentUser = user;
+                enterApp();
+            } else {
+                showMessage('❌ 账号或密码错误', 'error');
+            }
+        }
+
+        function logout() {
+            document.getElementById('app-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            currentUser = null;
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function enterApp() {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-page').style.display = 'block';
+            document.getElementById('user-info').innerText = (currentUser === 'dad') ? '👨‍✈️ 管理员模式 (爸爸)' : '🧑‍🚀 挑战者模式 (儿子)';
+            
+            refreshUI();
+        }
+
+        // ========== 核心业务逻辑 ==========
+
+        // 提交任务
+        function submitTask(taskId, taskName, reward, category) {
+            const isPending = pendingTasks.find(t => t.uid === taskId + '_pending');
+            if (isPending) return showMessage('⏳ 这个任务正在审核中', 'error');
+
+            const request = {
+                uid: taskId + '_pending',
+                name: taskName,
+                reward: reward,
+                category: category,
+                time: new Date().toLocaleTimeString()
+            };
+            
+            pendingTasks.push(request);
+            saveData();
+            refreshUI();
+            showMessage('✅ 已提交给爸爸审核', 'success');
+        }
+
+        // 爸爸审核 - 通过
+        function approveTask(index, isCrit) {
+            const task = pendingTasks[index];
+            const finalPoints = isCrit ? Math.floor(task.reward * 1.5 + 2) : task.reward;
+
+            currentScore += finalPoints;
+            pendingTasks.splice(index, 1);
+            
+            saveData();
+            refreshUI();
+            
+            if (isCrit) {
+                showMessage(`🔥 审批通过！态度极好 +${finalPoints}`, 'success');
+                fireworks();
+            } else {
+                showMessage(`✅ 审批通过 +${finalPoints}`, 'success');
+            }
+        }
+
+        // 爸爸审核 - 驳回
+        function rejectTask(index) {
+            if (confirm('确定驳回这个任务吗？')) {
+                pendingTasks.splice(index, 1);
+                saveData();
+                refreshUI();
+                showMessage('❌ 任务被驳回', 'error');
+            }
+        }
+
+        // 添加赏金任务
+        function addBounty() {
+            const input = document.getElementById('bounty-input');
+            const name = input.value.trim();
+            if (!name) return showMessage('⚠️ 请输入任务名称', 'error');
+
+            const newBounty = {
+                id: 'b_' + Date.now(),
+                name: '📌 ' + name,
+                reward: 10
+            };
+
+            tasks.bounty.push(newBounty);
+            saveBountyTasks();
+            refreshUI();
+            input.value = '';
+            showMessage('✅ 悬赏已发布', 'success');
+        }
+
+        // 删除赏金任务
+        function deleteBounty(id) {
+            tasks.bounty = tasks.bounty.filter(t => t.id !== id);
+            saveBountyTasks();
+            refreshUI();
+            showMessage('🗑️ 任务已删除', 'info');
+        }
+
+        // 商店兑换
+        function buyItem(cost, itemName) {
+            if (currentScore < cost) {
+                return showMessage('❌ 荣耀值不足，无法兑换', 'error');
+            }
+            
+            if (confirm(`确定花费 ${cost} ⭐ 兑换【${itemName}】吗？`)) {
+                currentScore -= cost;
+                saveData();
+                refreshUI();
+                showMessage(`✅ 兑换成功：${itemName}`, 'success');
+            }
+        }
+
+        // ========== 界面渲染 ==========
+        function refreshUI() {
+            document.getElementById('total-stars').innerText = currentScore;
+            updateRank();
+            renderPendingList();
+            renderTasks();
+            renderStore();
+        }
+
+        function updateRank() {
+            let rank = '🌑 预备兵';
+            if (currentScore >= 2000) rank = '👑 五星上将';
+            else if (currentScore >= 1000) rank = '☀️ 少校';
+            else if (currentScore >= 600) rank = '🌙🌙 上尉';
+            else if (currentScore >= 300) rank = '🌙 中士';
+            else if (currentScore >= 150) rank = '⭐⭐ 下士';
+            else if (currentScore >= 50) rank = '⭐ 二等兵';
+            document.getElementById('rank-badge').innerText = rank;
+        }
+
+        function renderPendingList() {
+            const dadZone = document.getElementById('dad-zone');
+            const list = document.getElementById('pending-list');
+            
+            if (currentUser === 'dad') {
+                dadZone.style.display = 'block';
+                list.innerHTML = '';
+                
+                if (pendingTasks.length === 0) {
+                    list.innerHTML = '<div style="color:#999; padding:20px; text-align:center; background:white; border-radius:12px;">暂无待审批任务</div>';
+                } else {
+                    pendingTasks.forEach((task, index) => {
+                        list.innerHTML += `
+                        <div class="task-card" style="border-left-color: #e67e22;">
+                            <div class="task-header">
+                                <div>
+                                    <div class="task-name">${task.name}</div>
+                                    <div style="font-size:12px; color:#999; margin-top:5px;">提交时间: ${task.time}</div>
+                                </div>
+                                <span class="pending-badge">待审核</span>
+                            </div>
+                            <div class="task-actions">
+                                <button class="btn-reject" onclick="rejectTask(${index})">驳回</button>
+                                <button class="btn-approve" onclick="approveTask(${index}, false)">通过 (+${task.reward})</button>
+                                <button class="btn-crit" onclick="approveTask(${index}, true)">🔥 态度超好 (+${Math.floor(task.reward * 1.5 + 2)})</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            } else {
+                dadZone.style.display = 'none';
+            }
+        }
+
+        function renderTasks() {
+            // 渲染核心使命
+            renderTaskList('core', tasks.core, 'core-tasks');
+            // 渲染每日充能
+            renderTaskList('daily', tasks.daily, 'daily-tasks');
+            // 渲染赏金悬赏
+            renderTaskList('bounty', tasks.bounty, 'bounty-tasks');
+        }
+
+        function renderTaskList(category, taskList, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            taskList.forEach(task => {
+                const isPending = pendingTasks.find(t => t.uid === task.id + '_pending');
+                
+                let actionHtml = '';
+                if (currentUser === 'kid') {
+                    if (isPending) {
+                        actionHtml = `<button class="btn-submit" style="background:#ccc; cursor:not-allowed;" disabled>⏳ 等待审核</button>`;
+                    } else {
+                        actionHtml = `<button class="btn-submit" onclick="submitTask('${task.id}', '${task.name}', ${task.reward}, '${category}')">✋ 我做完了</button>`;
+                    }
+                    
+                    // 赏金任务额外加删除按钮
+                    if (category === 'bounty') {
+                        actionHtml += ` <button class="btn-delete" onclick="deleteBounty('${task.id}')">删除</button>`;
+                    }
+                } else {
+                    actionHtml = `<div style="font-size:12px; color:#999;">任务标准</div>`;
+                }
+
+                container.innerHTML += `
+                <div class="task-card ${category}">
+                    <div class="task-header">
+                        <span class="task-name">${task.name}</span>
+                        <span class="task-reward">+${task.reward} ⭐</span>
+                    </div>
+                    <div class="task-actions">${actionHtml}</div>
+                </div>`;
+            });
+        }
+
+        function renderStore() {
+            const container = document.getElementById('store-items');
+            container.innerHTML = '';
+            
+            storeItems.forEach(item => {
+                const disabled = currentScore < item.cost;
+                const btnStyle = disabled ? 'background:#ccc; cursor:not-allowed;' : '';
+                
+                container.innerHTML += `
+                <div class="store-item">
+                    <div>
+                        <div class="store-name">${item.name}</div>
+                        <div class="store-cost">-${item.cost} ⭐</div>
+                    </div>
+                    <button class="btn-buy" style="${btnStyle}" ${disabled ? 'disabled' : ''} onclick="buyItem(${item.cost}, '${item.name}')">兑换</button>
+                </div>`;
+            });
+        }
+
+        // ========== 数据持久化 ==========
+        function saveData() {
+            localStorage.setItem('honorScore_v7', currentScore);
+            localStorage.setItem('pendingTasks_v7', JSON.stringify(pendingTasks));
+        }
+
+        function saveBountyTasks() {
+            localStorage.setItem('bountyTasks_v7', JSON.stringify(tasks.bounty));
+        }
+
+        // ========== 工具函数 ==========
+        function showMessage(text, type) {
+            const box = document.getElementById('message-box');
+            if (!box) return;
+            box.innerText = text;
+            box.style.opacity = 1;
+            box.style.backgroundColor = type === 'success' ? '#27ae60' : (type === 'error' ? '#e74c3c' : '#3498db');
+            setTimeout(() => { box.style.opacity = 0; }, 2500);
+        }
+
+        function fireworks() {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        console.log('🦁 荣耀系统 v7.0 已加载');
+    </script>
+</body>
+</html>
+
+{
+  "rules": {
+    "families": {
+      "$roomId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

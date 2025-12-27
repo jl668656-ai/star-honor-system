@@ -5,7 +5,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="🦁 荣耀系统 v12.2.0 - 为孩子设计的行为激励和任务管理系统">
+    <meta name="description" content="🦁 荣耀系统 v12.1.2 - 为孩子设计的行为激励和任务管理系统">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-title" content="荣耀系统">
     
@@ -15,7 +15,7 @@
     <!-- iOS 相关配置 -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>">
     
-    <title>🦁 荣耀系统 v12.2.0 - 用户管理版</title>
+    <title>🦁 荣耀系统 v12.1.2 - 用户管理版</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Firebase SDK (Compat 版本，提供全局 firebase.* 命名空间) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -388,8 +388,8 @@
         
         <!-- 登录框 -->
         <div class="auth-box" id="login-box">
-            <h1>🦁 荣耀系统 v12.2.0</h1>
-            <p>用户管理版 · 版本：v12.2.0（2025-12-28）</p>
+            <h1>🦁 荣耀系统 v12.1.2</h1>
+            <p>用户管理版 · 版本：v12.1.2（2025-12-28）</p>
             
             <input type="text" id="username" class="auth-input" placeholder="账号" onkeypress="if(event.key==='Enter') handleLogin()">
             <input type="password" id="password" class="auth-input" placeholder="密码" onkeypress="if(event.key==='Enter') handleLogin()">
@@ -469,8 +469,7 @@
         <div class="input-area admin-only">
             <h3>📝 发布新悬赏</h3>
             <div class="input-group">
-                <input type="text" id="bounty-input" placeholder="输入任务名称" style="flex:2;">
-                <input type="number" id="bounty-reward" placeholder="奖励⭐" value="10" min="1" max="100" style="flex:1; max-width:80px;">
+                <input type="text" id="bounty-input" placeholder="输入任务名称">
                 <button class="btn-submit" onclick="addBounty()">发布</button>
             </div>
         </div>
@@ -645,8 +644,7 @@
             const sel = document.getElementById('child-filter');
             if (!sel) return;
             setSavedChildFilter(sel.value);
-            // 🔧 刷新整个UI以显示对应孩子的分数和军衔
-            refreshUI();
+            try { renderPendingList(); } catch (_) {}
         }
 
         function safeJsonParse(text, fallback) {
@@ -955,38 +953,7 @@
             // 2) ⚡️ 实时同步：必须监听 /tasks 的 onValue，并在变化时立刻 renderTasks()
             startTasksRealtimeSync();
 
-            // 🔧 孩子端：从云端同步自己的分数
-            if (currentUser.role === 'executor') {
-                syncScoreFromCloud(currentUser.username);
-            }
-
             refreshUI();
-        }
-
-        // 🔧 新增：从云端同步分数
-        function syncScoreFromCloud(username) {
-            if (typeof database === 'undefined') return;
-            try {
-                database.ref('/scores/' + username).once('value').then(snapshot => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const cloudScore = data.score || 0;
-                        const localScore = loadUserLocalScore(username);
-                        
-                        // 云端分数更高时同步到本地
-                        if (cloudScore > localScore) {
-                            saveUserLocalScore(username, cloudScore);
-                            if (currentUser && currentUser.username === username) {
-                                currentScore = cloudScore;
-                                refreshUI();
-                            }
-                            console.log(`☁️ 从云端同步分数: ${localScore} → ${cloudScore}`);
-                        }
-                    }
-                });
-            } catch (e) {
-                console.warn('⚠️ 从云端同步分数失败:', e);
-            }
         }
 
         function logout() {
@@ -1147,68 +1114,16 @@
             historyRef.push().set(historyItem)
                 .then(() => tasksRef.child(taskKey).remove())
                 .then(() => {
-                    // 🔧 修复：分数应该加给提交任务的孩子，而非管理员
-                    const childUsername = task.childId || task.submitterUsername;
-                    const reward = parseInt(task.reward, 10) || 0;
-                    
-                    // 更新孩子的本地分数
-                    const childScore = loadUserLocalScore(childUsername) + reward;
-                    saveUserLocalScore(childUsername, childScore);
-                    
-                    // 同步到云端 /scores 节点
-                    syncChildScoreToCloud(childUsername, childScore);
-                    
+                    // 本地分数逻辑保持不变：给当前登录者加分（现有系统行为）
+                    currentScore += (parseInt(task.reward, 10) || 0);
+                    saveData();
                     refreshUI();
-                    const childName = task.childName || task.submitterName || childUsername;
-                    showMessage(`✅ 已批准！${childName} 获得 +${reward}⭐`, 'success');
+                    showMessage('✅ 批准成功', 'success');
                     fireworks();
                 })
                 .catch((e) => {
                     console.error('❌ 审批失败:', e);
                     showMessage('❌ 审批失败：' + e.message, 'error');
-                });
-        }
-
-        // 🔧 新增：同步孩子分数到云端
-        function syncChildScoreToCloud(username, score) {
-            if (typeof database === 'undefined') return;
-            try {
-                database.ref('/scores/' + username).set({
-                    score: score,
-                    updatedAt: Date.now()
-                });
-            } catch (e) {
-                console.warn('⚠️ 同步分数到云端失败:', e);
-            }
-        }
-
-        // 🔧 新增：驳回任务
-        function rejectTaskCloud(taskKey) {
-            if (!currentUser || currentUser.role !== 'admin') return;
-            const task = cloudTasksByKey[taskKey];
-            if (!task) {
-                showMessage('⚠️ 任务不存在或已被处理', 'error');
-                return;
-            }
-
-            const reason = prompt('请输入驳回原因（可选）：');
-            if (reason === null) return; // 用户取消
-
-            const tasksRef = getTasksRef();
-            if (!tasksRef) {
-                showMessage('⚠️ 云端未配置，无法驳回', 'error');
-                return;
-            }
-
-            // 直接删除任务（不记录到历史）
-            tasksRef.child(taskKey).remove()
-                .then(() => {
-                    const childName = task.childName || task.submitterName || '孩子';
-                    showMessage(`❌ 已驳回 ${childName} 的任务${reason ? '：' + reason : ''}`, 'info');
-                })
-                .catch((e) => {
-                    console.error('❌ 驳回失败:', e);
-                    showMessage('❌ 驳回失败：' + e.message, 'error');
                 });
         }
 
@@ -1255,48 +1170,29 @@
         // ========== 惩罚/悬赏/商店（保留原行为） ==========
         function applyPenalty(penaltyPoints, penaltyName) {
             if (!currentUser || currentUser.role !== 'admin') return;
-            
-            // 🔧 针对筛选的孩子执行惩罚
-            const filter = getEffectiveChildFilter();
-            if (filter === 'all') {
-                return showMessage('⚠️ 请先在顶部选择要惩罚的孩子', 'error');
-            }
-            
-            const execUsers = listExecutorUsers();
-            const targetUser = execUsers.find(u => u.username === filter);
-            if (!targetUser) {
-                return showMessage('❌ 找不到该孩子', 'error');
-            }
-
-            if (confirm(`确定对 ${targetUser.nickname || targetUser.username} 进行扣分【${penaltyName}】(${penaltyPoints}⭐)吗？`)) {
-                const childScore = loadUserLocalScore(filter) + penaltyPoints;
-                saveUserLocalScore(filter, Math.max(0, childScore)); // 不允许负分
-                syncChildScoreToCloud(filter, Math.max(0, childScore));
+            if (confirm(`确定对用户进行扣分【${penaltyName}】(${penaltyPoints}⭐)吗？`)) {
+                currentScore += penaltyPoints;
+                saveData();
                 refreshUI();
-                showMessage(`⚠️ ${targetUser.nickname || targetUser.username} ${penaltyName}，扣除 ${Math.abs(penaltyPoints)}⭐`, 'error');
+                showMessage(`⚠️ ${penaltyName}`, 'error');
             }
         }
 
         function addBounty() {
             const input = document.getElementById('bounty-input');
-            const rewardInput = document.getElementById('bounty-reward');
             const name = (input && input.value || '').trim();
-            const reward = parseInt(rewardInput && rewardInput.value, 10) || 10;
-            
             if (!name) return showMessage('⚠️ 请输入任务名称', 'error');
-            if (reward < 1 || reward > 100) return showMessage('⚠️ 奖励范围：1-100⭐', 'error');
 
             const newBounty = {
                 id: 'b_' + Date.now(),
                 name: '📌 ' + name,
-                reward: reward
+                reward: 10
             };
             tasks.bounty.push(newBounty);
             saveBountyTasks();
             refreshUI();
             input.value = '';
-            rewardInput.value = '10';
-            showMessage(`✅ 悬赏已发布（奖励 ${reward}⭐）`, 'success');
+            showMessage('✅ 悬赏已发布', 'success');
         }
 
         function deleteBounty(id) {
@@ -1307,39 +1203,14 @@
         }
 
         function buyItem(cost, itemName) {
-            // 🔧 确定扣哪个账号的分
-            let targetUsername = currentUser.username;
-            let targetScore = currentScore;
-            
-            if (currentUser.role === 'admin') {
-                const filter = getEffectiveChildFilter();
-                if (filter === 'all') {
-                    return showMessage('⚠️ 请先在顶部选择要兑换的孩子', 'error');
-                }
-                targetUsername = filter;
-                targetScore = loadUserLocalScore(filter);
-            }
-            
-            if (targetScore < cost) {
+            if (currentScore < cost) {
                 return showMessage('❌ 荣耀值不足，无法兑换', 'error');
             }
-            
-            const execUsers = listExecutorUsers();
-            const targetUser = execUsers.find(u => u.username === targetUsername) || currentUser;
-            const displayName = targetUser.nickname || targetUsername;
-            
-            if (confirm(`确定为 ${displayName} 花费 ${cost} ⭐ 兑换【${itemName}】吗？`)) {
-                const newScore = targetScore - cost;
-                saveUserLocalScore(targetUsername, newScore);
-                syncChildScoreToCloud(targetUsername, newScore);
-                
-                if (targetUsername === currentUser.username) {
-                    currentScore = newScore;
-                }
-                
+            if (confirm(`确定花费 ${cost} ⭐ 兑换【${itemName}】吗？`)) {
+                currentScore -= cost;
+                saveData();
                 refreshUI();
-                showMessage(`✅ ${displayName} 兑换成功：${itemName}`, 'success');
-                fireworks();
+                showMessage(`✅ 兑换成功：${itemName}`, 'success');
             }
         }
 
@@ -1355,39 +1226,6 @@
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
             }
-        }
-
-        // 🔧 找回密码弹窗控制
-        function openResetPasswordModal() {
-            document.getElementById('reset-password-modal').classList.add('show');
-        }
-
-        function closeResetPasswordModal(event) {
-            if (!event || event.target.id === 'reset-password-modal') {
-                document.getElementById('reset-password-modal').classList.remove('show');
-                document.getElementById('reset-username').value = '';
-            }
-        }
-
-        function handleResetPassword() {
-            const username = (document.getElementById('reset-username').value || '').trim();
-            if (!username) {
-                return showMessage('⚠️ 请输入账号', 'error');
-            }
-
-            allUsers = safeJsonParse(localStorage.getItem(STORAGE.USERS), allUsers) || [];
-            const idx = allUsers.findIndex(u => u && u.username.toLowerCase() === username.toLowerCase());
-            
-            if (idx === -1) {
-                return showMessage('❌ 账号不存在', 'error');
-            }
-
-            // 重置密码为 123456
-            allUsers[idx].password = '123456';
-            localStorage.setItem(STORAGE.USERS, JSON.stringify(allUsers));
-            
-            closeResetPasswordModal();
-            showMessage('✅ 密码已重置为 123456，请重新登录', 'success');
         }
 
         function savePassword() {
@@ -1420,14 +1258,8 @@
 
         // ========== 界面渲染 ==========
         function refreshUI() {
-            // 🔧 管理员筛选特定孩子时，显示该孩子的分数
-            let displayScore = currentScore;
-            const filter = getEffectiveChildFilter();
-            if (currentUser && currentUser.role === 'admin' && filter !== 'all') {
-                displayScore = loadUserLocalScore(filter);
-            }
-            document.getElementById('total-stars').innerText = displayScore;
-            updateRankWithScore(displayScore);
+            document.getElementById('total-stars').innerText = currentScore;
+            updateRank();
             renderPenalties();
             renderPendingList();
             renderTasks();
@@ -1435,13 +1267,9 @@
         }
 
         function updateRank() {
-            updateRankWithScore(currentScore);
-        }
-
-        function updateRankWithScore(score) {
             let currentRank = rankSystem[0];
             for (let i = rankSystem.length - 1; i >= 0; i--) {
-                if (score >= rankSystem[i].score) {
+                if (currentScore >= rankSystem[i].score) {
                     currentRank = rankSystem[i];
                     break;
                 }
@@ -1495,11 +1323,10 @@
                             <div class="task-name">${task.name}</div>
                             <div style="font-size:12px; color:#999; margin-top:5px;">${who} · ${timeText}</div>
                         </div>
-                        <span class="pending-badge">待审批</span>
+                        <span class="pending-badge">pending</span>
                     </div>
                     <div class="task-actions">
                         <button class="btn-approve" onclick="approveTaskCloud('${task._key}')">✅ 批准 (+${parseInt(task.reward, 10) || 0})</button>
-                        <button class="btn-reject" onclick="rejectTaskCloud('${task._key}')">❌ 驳回</button>
                     </div>
                 </div>`;
             });
@@ -1734,7 +1561,7 @@
             }
         }
 
-        console.log('🦁 荣耀系统 v12.2.0 已加载');
+        console.log('🦁 荣耀系统 v12.1.2 已加载');
 
         // ========== PWA Service Worker 注册 ==========
         if ('serviceWorker' in navigator) {

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>🦁 荣耀系统 App</title>
+    
+    <link rel="apple-touch-icon" href="https://github.githubassets.com/images/icons/emoji/unicode/1f981.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg: radial-gradient(circle at 20% 20%, #eef3ff, #f9fbff 35%, #f4f6f9 70%);
+            --card: #ffffff;
+            --shadow: 0 10px 24px rgba(0,0,0,0.08);
+            --primary: #2c3e50;
+            --primary-2: #4ca1af;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --info: #2980b9;
+            --muted: #7f8c8d;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans SC', 'Avenir Next', system-ui, sans-serif;
+            background: #f2f2f7;
+            text-align: center;
+            padding: 15px;
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            max-width: 100%;
+            margin: 0;
+            color: #1c1c1e;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        h1 { color: var(--primary); text-shadow: 1px 1px #bdc3c7; letter-spacing: 1px; }
+        h2 { margin-top: 40px; }
+
+        /* 核心分数板 */
+        #score-board {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            margin: 15px 0 20px;
+            border: none;
+            position: sticky;
+            top: env(safe-area-inset-top, 10px);
+            z-index: 100;
+            width: calc(100% - 30px);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #total-stars { font-size: 60px; font-weight: 800; }
+        #rank-title { font-size: 18px; font-weight: 700; opacity: 0.95; }
+        .label { font-size: 18px; opacity: 0.9; }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        th, td { padding: 14px 10px; border-bottom: 1px solid #f2f2f7; font-size: 15px; }
+        th { letter-spacing: 0.3px; font-weight: 600; }
+        td { line-height: 1.4; }
+
+        /* 按钮通用 */
+        button {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        button:active { transform: scale(0.94); }
+        @media (hover: hover) {
+            button:hover { box-shadow: 0 6px 14px rgba(0,0,0,0.15); }
+        }
+
+        /* 🟢 正向行为（加分） */
+        .task-header { background-color: var(--success); color: white; }
+        .btn-add { background-color: var(--success); box-shadow: 0 4px #1e8449; }
+        .btn-crit { background-color: #e67e22; box-shadow: 0 4px #b35815; }
+
+        /* 🔴 负面行为（扣分） */
+        .penalty-header { background-color: var(--danger); color: white; }
+        .btn-minus { background-color: var(--danger); box-shadow: 0 4px #922b21; }
+
+        /* 🔵 特权商店 */
+        .store-header { background-color: var(--info); color: white; }
+        .btn-buy { background-color: var(--info); box-shadow: 0 4px #1f618d; }
+        .btn-buy.disabled { background-color: #bfc5cc; box-shadow: none; cursor: not-allowed; color: #f5f7fa; }
+
+        .category {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            color: var(--muted);
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        /* 任务发布区 */
+        #task-publisher {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 18px;
+            border-radius: 18px;
+            margin: 15px 0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        #task-publisher h3 { color: white; margin-top: 0; margin-bottom: 12px; font-size: 18px; }
+        .input-area {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 8px;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        #task-input {
+            flex: 1;
+            padding: 12px 14px;
+            font-size: 16px;
+            border: 1px solid #e5e5ea;
+            border-radius: 10px;
+            -webkit-appearance: none;
+            outline: none;
+        }
+        #add-task-btn {
+            background-color: #f39c12;
+            padding: 12px 20px;
+            font-size: 15px;
+            border-radius: 10px;
+            border: none;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px #d68910;
+            white-space: nowrap;
+        }
+        @media (hover: hover) {
+            #add-task-btn:hover { box-shadow: 0 5px 12px rgba(0,0,0,0.15); }
+        }
+        #add-task-btn:active { transform: scale(0.96); }
+        .btn-delete { background-color: #95a5a6; box-shadow: 0 3px #7f8c8d; margin-left: 5px; }
+
+        /* 提示框 */
+        #message-box {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 20px) + 60px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 14px 24px;
+            border-radius: 14px;
+            color: white;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ 男子汉行为训练系统 ⚡</h1>
+
+    <div id="score-board">
+        <div id="rank-title">新兵 (Private)</div>
+        <div class="label">当前战斗力（星星）</div>
+        <span id="total-stars">0</span> ⭐
+    </div>
+    <div id="message-box"></div>
+
+    <!-- 🎯 动态任务发布区 -->
+    <div id="task-publisher">
+        <h3>🎯 发布自定义任务</h3>
+        <div class="input-area">
+            <input type="text" id="task-input" placeholder="输入任务名称，例如：倒垃圾" />
+            <button id="add-task-btn" onclick="addCustomTask()">📝 发布</button>
+        </div>
+    </div>
+
+    <h2 style="color: var(--danger);">🚨 警示区：违规扣分</h2>
+    <table>
+        <thead class="penalty-header">
+            <tr>
+                <th width="60%">违规行为</th>
+                <th width="20%">惩罚</th>
+                <th width="20%">执行</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>😡 对长辈大吼大叫 / 顶嘴</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-20 ⭐</td>
+                <td><button class="btn-minus" onclick="updateScore(-20, 'penalty')">扣分</button></td>
+            </tr>
+            <tr>
+                <td>🐢 磨磨蹭蹭，不守时间</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-10 ⭐</td>
+                <td><button class="btn-minus" onclick="updateScore(-10, 'penalty')">扣分</button></td>
+            </tr>
+            <tr>
+                <td>📱 未经允许偷玩电子产品</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-50 ⭐</td>
+                <td><button class="btn-minus" onclick="updateScore(-50, 'penalty')">重罚</button></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 style="color: var(--success);">🛡️ 任务区：积累荣耀</h2>
+    <table>
+        <thead class="task-header">
+            <tr>
+                <th>挑战任务</th>
+                <th>奖励</th>
+                <th>确认</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="3" class="category">⚔️ 意志力挑战（自律）</td></tr>
+            <tr><td>⏰ 独立按时完成作业（不用催）</td><td><b>+5</b> ⭐</td><td><button class="btn-add" onclick="updateScore(5, 'task')">完成</button> <button class="btn-crit" onclick="updateScore(8, 'critical')">态度超好</button></td></tr>
+            <tr><td>🎻 专注练琴（不发脾气）</td><td><b>+3</b> ⭐</td><td><button class="btn-add" onclick="updateScore(3, 'task')">完成</button> <button class="btn-crit" onclick="updateScore(5, 'critical')">态度超好</button></td></tr>
+            
+            <tr><td colspan="3" class="category">🤝 责任与担当（贡献）</td></tr>
+            <tr><td>👶 带沫沫玩耍 / 讲故事</td><td><b>+10</b> ⭐</td><td><button class="btn-add" onclick="updateScore(10, 'task')">完成</button> <button class="btn-crit" onclick="updateScore(14, 'critical')">态度超好</button></td></tr>
+            <tr><td>🔧 协助爸爸修理/搬运重物</td><td><b>+15</b> ⭐</td><td><button class="btn-add" onclick="updateScore(15, 'task')">完成</button> <button class="btn-crit" onclick="updateScore(20, 'critical')">态度超好</button></td></tr>
+            <tr><td>🚲 负责家庭新闻播报/整理餐桌</td><td><b>+5</b> ⭐</td><td><button class="btn-add" onclick="updateScore(5, 'task')">完成</button> <button class="btn-crit" onclick="updateScore(8, 'critical')">态度超好</button></td></tr>
+            
+            <tr><td colspan="3" class="category">📝 我的自定义任务</td></tr>
+        </tbody>
+        <tbody id="custom-tasks-body">
+            <!-- 动态任务将在这里渲染 -->
+        </tbody>
+    </table>
+
+    <h2 style="color: var(--info);">🏆 权益商店：特权兑换</h2>
+    <table>
+        <thead class="store-header">
+            <tr>
+                <th>特权名称</th>
+                <th>花费</th>
+                <th>兑换</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>🎮 玩手机 30 分钟</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-50 ⭐</td>
+                <td><button class="btn-buy" onclick="updateScore(-50, 'store')">兑换</button></td>
+            </tr>
+            <tr>
+                <td>👑 <b>周末指挥官</b> (决定全家去哪玩)</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-300 ⭐</td>
+                <td><button class="btn-buy" onclick="updateScore(-300, 'store')">兑换</button></td>
+            </tr>
+            <tr>
+                <td>🛠️ <b>工具箱使用权</b> (和爸爸一起)</td>
+                <td style="color:#ffe1e1; font-weight:bold;">-100 ⭐</td>
+                <td><button class="btn-buy" onclick="updateScore(-100, 'store')">兑换</button></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        // 读取之前的星星（如果没有就默认为0）
+        let currentScore = parseInt(localStorage.getItem('myStarScore')) || 0;
+        const totalStarsEl = document.getElementById('total-stars');
+        const rankTitleEl = document.getElementById('rank-title');
+        refreshDisplay();
+
+        function updateScore(points, type) {
+            // 商店兑换时检查余额
+            if (points < 0 && type === 'store') {
+                if (currentScore < 0) {
+                    showMessage('⚠️ 信用破产，请先赚分', 'error');
+                    return;
+                }
+                if (currentScore + points < 0) {
+                    showMessage('❌ 你的荣耀值不足，无法兑换！', 'error');
+                    return;
+                }
+            }
+
+            currentScore += points;
+            localStorage.setItem('myStarScore', currentScore);
+            refreshDisplay();
+
+            if (type === 'task') {
+                showMessage('⚔️ 任务达成！荣耀 + ' + points, 'success');
+                fireworks();
+            } else if (type === 'penalty') {
+                showMessage('⚠️ 违规扣分！荣耀 - ' + Math.abs(points), 'error');
+            } else if (type === 'store') {
+                showMessage('✅ 兑换成功！', 'info');
+            } else if (type === 'critical') {
+                showMessage('🔥 态度暴击！荣耀 + ' + points, 'success');
+                fireworks();
+            }
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('message-box');
+            box.innerText = text;
+            box.style.opacity = 1;
+            box.style.backgroundColor = type === 'success' ? varSuccess() : (type === 'error' ? varDanger() : varInfo());
+            setTimeout(() => { box.style.opacity = 0; }, 2000);
+        }
+
+        function varSuccess() { return getComputedStyle(document.documentElement).getPropertyValue('--success'); }
+        function varDanger() { return getComputedStyle(document.documentElement).getPropertyValue('--danger'); }
+        function varInfo() { return getComputedStyle(document.documentElement).getPropertyValue('--info'); }
+
+        // 军衔系统：根据分数显示军衔
+        function getRank(score) {
+            if (score < 50) return '🌑 预备兵 (Recruit)';
+            if (score < 150) return '⭐️ 二等兵 (Private)';
+            if (score < 300) return '⭐️⭐️ 下士 (Corporal)';
+            if (score < 600) return '🌙 中士 (Sergeant)';
+            if (score < 1000) return '🌙🌙 上尉 (Captain)';
+            if (score < 2000) return '☀️ 少校 (Major)';
+            return '👑 五星上将 (General)';
+        }
+        function updateRank(score) {
+            rankTitleEl.innerText = getRank(score);
+        }
+        function refreshDisplay() {
+            totalStarsEl.innerText = currentScore;
+            updateRank(currentScore);
+            updateStoreFuse();
+        }
+
+        // ========== 自定义任务系统 ==========
+        let customTasks = JSON.parse(localStorage.getItem('customTasks')) || [];
+
+        // 添加自定义任务
+        function addCustomTask() {
+            const input = document.getElementById('task-input');
+            const taskName = input.value.trim();
+            if (!taskName) {
+                showMessage('⚠️ 请输入任务名称', 'error');
+                return;
+            }
+            const newTask = {
+                id: Date.now(),
+                name: taskName,
+                points: 10
+            };
+            customTasks.push(newTask);
+            saveCustomTasks();
+            renderCustomTasks();
+            input.value = '';
+            showMessage('✅ 任务已发布', 'success');
+        }
+
+        // 删除自定义任务
+        function deleteCustomTask(taskId) {
+            customTasks = customTasks.filter(t => t.id !== taskId);
+            saveCustomTasks();
+            renderCustomTasks();
+            showMessage('🗑️ 任务已删除', 'info');
+        }
+
+        // 保存到 localStorage
+        function saveCustomTasks() {
+            localStorage.setItem('customTasks', JSON.stringify(customTasks));
+        }
+
+        // 渲染自定义任务列表
+        function renderCustomTasks() {
+            const tbody = document.getElementById('custom-tasks-body');
+            if (customTasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="color:#95a5a6; font-style:italic;">暂无自定义任务，快去发布一个吧！</td></tr>';
+                return;
+            }
+            tbody.innerHTML = customTasks.map(task => `
+                <tr>
+                    <td>📌 ${task.name}</td>
+                    <td><b>+${task.points}</b> ⭐</td>
+                    <td>
+                        <button class="btn-add" onclick="updateScore(${task.points}, 'task')">完成</button>
+                        <button class="btn-delete" onclick="deleteCustomTask(${task.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 初始化加载自定义任务
+        renderCustomTasks();
+
+        // 商店熔断：分数为负时禁用商店按钮
+        function updateStoreFuse() {
+            const buyBtns = document.querySelectorAll('.btn-buy');
+            const disabled = currentScore < 0;
+            buyBtns.forEach(btn => {
+                btn.disabled = disabled;
+                btn.classList.toggle('disabled', disabled);
+            });
+            if (disabled) {
+                showMessage('⚠️ 信用破产，请先赚分', 'error');
+            }
+        }
+
+        // 简单烟花效果
+        function fireworks() {
+            const count = 180;
+            const defaults = { origin: { y: 0.7 } };
+            const fire = (particleRatio, opts) => {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio)
+                }));
+            };
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+        }
+    </script>
+</body>
+</html>

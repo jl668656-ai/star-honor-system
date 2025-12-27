@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🦁 荣耀系统 v6.0 (审批版)</title>
+    <link rel="apple-touch-icon" href="https://github.githubassets.com/images/icons/emoji/unicode/1f981.png">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f2f2f7; text-align: center; padding: 20px; padding-top: 50px; color: #1c1c1e;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 登录界面 */
+        #login-page { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 80vh; 
+        }
+        .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        .login-input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 15px; background: #007AFF; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px;}
+
+        /* 主界面通用 */
+        #login-page { display: flex; } /* 默认显示登录页 */
+        #app-page { display: none; } /* 默认隐藏任务页 */
+        .show { display: block !important; animation: fadeIn 0.5s; }
+        .hide { display: none !important; }
+
+        .status-bar {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            color: white; padding: 20px; border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin-bottom: 25px; position: relative;
+        }
+        
+        .logout-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+
+        #total-stars { font-size: 60px; font-weight: 800; line-height: 1; }
+
+        .card {
+            background: white; border-radius: 18px; padding: 15px; margin-bottom: 15px;
+            display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); text-align: left;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .card-actions { display: flex; gap: 10px; width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+        
+        .task-name { font-weight: bold; font-size: 18px; }
+        .task-reward { color: #27ae60; font-weight: bold; font-size: 14px; }
+        
+        button { border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 14px; }
+        
+        .btn-submit { background-color: #007AFF; width: 100%; } /* 孩子提交 */
+        .btn-approve { background-color: #34c759; } /* 爸爸通过 */
+        .btn-crit { background-color: #ff9500; } /* 爸爸暴击 */
+        .btn-reject { background-color: #ff3b30; } /* 爸爸驳回 */
+        
+        /* 待审核标记 */
+        .pending-tag { background: #ffcc00; color: #555; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #message-box {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 20px; color: white; font-weight: bold;
+            opacity: 0; transition: opacity 0.5s; z-index: 1000; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="message-box"></div>
+
+    <div id="login-page">
+        <div class="login-box">
+            <h2>🔐 荣耀系统登录</h2>
+            <div style="margin-bottom: 20px; color: #888; font-size: 14px;">请选择身份登录</div>
+            
+            <input type="text" id="username" class="login-input" placeholder="账号 (kid / dad)" onkeypress="if(event.key==='Enter') handleLogin()">
+            <input type="password" id="password" class="login-input" placeholder="密码" onkeypress="if(event.key==='Enter') handleLogin()">
+            
+            <button class="btn-login" onclick="handleLogin()">进入系统</button>
+            <div style="margin-top: 15px; font-size: 12px; color: #aaa;">
+                默认密码：123456<br>
+                孩子账号: kid | 爸爸账号: dad
+            </div>
+        </div>
+    </div>
+
+    <div id="app-page">
+        <div class="status-bar">
+            <div id="rank-badge">当前军衔：新兵</div>
+            <div><span id="total-stars">0</span> ⭐</div>
+            <div id="user-welcome" style="margin-top: 10px; opacity: 0.8;">欢迎回来</div>
+        </div>
+
+        <div id="dad-zone" style="display: none;">
+            <h2 style="color: #ff9500; border-left: 5px solid #ff9500; padding-left: 10px;">⏳ 待审批任务</h2>
+            <div id="pending-list">
+                <div style="color: #aaa; padding: 20px;">暂无待审批任务</div>
+            </div>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        </div>
+
+        <h2 style="color: #007AFF; border-left: 5px solid #007AFF; padding-left: 10px;">⚔️ 任务挑战</h2>
+        <div id="task-list"></div>
+
+        <!-- 退出按钮 -->
+        <button style="width: 100%; padding: 15px; background: #95a5a6; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 30px; cursor: pointer;" onclick="logout()">🚪 退出账号</button>
+
+    </div>
+
+    <script>
+        // --- 数据初始化 ---
+        let currentScore = parseInt(localStorage.getItem('honorScore_v6')) || 0;
+        let pendingTasks = JSON.parse(localStorage.getItem('pendingTasks_v6')) || [];
+        let currentUser = null; // 'kid' or 'dad'
+
+        const tasks = [
+            { id: 1, name: "🎻 专注练琴 / 晨读", reward: 5 },
+            { id: 2, name: "🔧 协助爸爸干活", reward: 10 },
+            { id: 3, name: "📝 独立完成作业", reward: 5 },
+            { id: 4, name: "👶 带弟弟沫沫", reward: 10 }
+        ];
+
+        // --- 登录逻辑 ---
+        function handleLogin() {
+            const user = document.getElementById('username').value.toLowerCase().trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (user === 'kid' && pass === '123456') {
+                currentUser = 'kid';
+                enterApp();
+            } else if (user === 'dad' && pass === '123456') {
+                currentUser = 'dad';
+                enterApp();
+            } else {
+                showMessage("账号或密码错误！提示: kid/123456 或 dad/123456", "error");
+            }
+        }
+
+        function logout() {
+            // 隐藏任务页，显示登录页
+            document.getElementById('app-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            currentUser = null;
+            // 清空输入框
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function enterApp() {
+            // 隐藏登录页，显示任务页
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-page').style.display = 'block';
+            document.getElementById('user-welcome').innerText = (currentUser === 'dad') ? "👨‍✈️ 管理员模式 (爸爸)" : "🧑‍🚀 挑战者模式 (儿子)";
+            
+            refreshUI();
+        }
+
+        // --- 核心业务逻辑 ---
+
+        // 1. 孩子提交任务
+        function submitTask(taskId, taskName, reward) {
+            // 检查是否已经在审核中
+            const isPending = pendingTasks.find(t => t.uid === taskId + '_pending');
+            if(isPending) return showMessage("这个任务正在审核中，别急！", "error");
+
+            const request = {
+                uid: taskId + '_pending', // 唯一ID
+                name: taskName,
+                reward: reward,
+                time: new Date().toLocaleTimeString()
+            };
+            
+            pendingTasks.push(request);
+            saveData();
+            refreshUI();
+            showMessage("✅ 已提交给爸爸审核！", "success");
+        }
+
+        // 2. 爸爸审核 - 通过
+        function approveTask(index, isCrit) {
+            const task = pendingTasks[index];
+            const finalPoints = isCrit ? Math.floor(task.reward * 1.5 + 2) : task.reward; // 暴击算法
+
+            currentScore += finalPoints;
+            pendingTasks.splice(index, 1); // 从待办里移除
+            
+            saveData();
+            refreshUI();
+            
+            if(isCrit) {
+                showMessage(`🔥 审批通过！态度极好 +${finalPoints}`, "success");
+                fireworks();
+            } else {
+                showMessage(`✅ 审批通过 +${finalPoints}`, "success");
+            }
+        }
+
+        // 3. 爸爸审核 - 驳回
+        function rejectTask(index) {
+            if(confirm("确定驳回这个任务吗？(说明没做好)")) {
+                pendingTasks.splice(index, 1);
+                saveData();
+                refreshUI();
+                showMessage("❌ 任务被驳回", "error");
+            }
+        }
+
+        // --- 界面渲染 ---
+        function refreshUI() {
+            document.getElementById('total-stars').innerText = currentScore;
+            updateRank();
+
+            // 1. 渲染审批列表 (只在爸爸模式，且有待办时显示)
+            const dadZone = document.getElementById('dad-zone');
+            const pendingList = document.getElementById('pending-list');
+            
+            if (currentUser === 'dad') {
+                dadZone.style.display = 'block';
+                pendingList.innerHTML = '';
+                
+                if (pendingTasks.length === 0) {
+                    pendingList.innerHTML = '<div style="color:#aaa; padding:10px;">暂无待审批任务</div>';
+                } else {
+                    pendingTasks.forEach((task, index) => {
+                        pendingList.innerHTML += `
+                        <div class="card" style="border-left: 5px solid #ff9500;">
+                            <div class="card-header">
+                                <span class="task-name">${task.name}</span>
+                                <span class="pending-tag">待审核</span>
+                            </div>
+                            <div style="font-size:12px; color:#888;">提交时间: ${task.time}</div>
+                            <div class="card-actions" style="margin-top:10px;">
+                                <button class="btn-reject" onclick="rejectTask(${index})">驳回</button>
+                                <button class="btn-approve" onclick="approveTask(${index}, false)">通过 (+${task.reward})</button>
+                                <button class="btn-crit" onclick="approveTask(${index}, true)">🔥 态度超好 (+${Math.floor(task.reward * 1.5 + 2)})</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            } else {
+                dadZone.style.display = 'none';
+            }
+
+            // 2. 渲染普通任务列表
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+            
+            tasks.forEach(task => {
+                // 检查这个任务是否在审核中
+                const isPending = pendingTasks.find(t => t.uid === task.id + '_pending');
+                
+                let actionHtml = '';
+                if (currentUser === 'kid') {
+                    if (isPending) {
+                        actionHtml = `<button class="btn-submit" style="background:#ccc; cursor:not-allowed;" disabled>⏳ 等待爸爸审核...</button>`;
+                    } else {
+                        actionHtml = `<button class="btn-submit" onclick="submitTask(${task.id}, '${task.name}', ${task.reward})">✋ 我做完了！申请验收</button>`;
+                    }
+                } else {
+                    // 爸爸看任务列表，可能不需要操作，或者可以帮他直接完成
+                    actionHtml = `<div style="font-size:12px; color:#aaa;">任务标准卡</div>`;
+                }
+
+                taskList.innerHTML += `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="task-name">${task.name}</span>
+                        <span class="task-reward">价值 ${task.reward} ⭐</span>
+                    </div>
+                    <div style="width:100%; margin-top:10px;">
+                        ${actionHtml}
+                    </div>
+                </div>`;
+            });
+        }
+
+        function updateRank() {
+            let rank = "🌑 预备兵";
+            if (currentScore >= 2000) rank = "👑 五星上将";
+            else if (currentScore >= 1000) rank = "☀️ 少校";
+            else if (currentScore >= 600) rank = "🌙🌙 上尉";
+            else if (currentScore >= 300) rank = "🌙 中士";
+            else if (currentScore >= 150) rank = "⭐️⭐️ 下士";
+            else if (currentScore >= 50) rank = "⭐️ 二等兵";
+            document.getElementById('rank-badge').innerText = "当前军衔：" + rank;
+        }
+
+        function saveData() {
+            localStorage.setItem('honorScore_v6', currentScore);
+            localStorage.setItem('pendingTasks_v6', JSON.stringify(pendingTasks));
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('message-box');
+            if (!box) return;
+            box.innerText = text;
+            box.style.opacity = 1;
+            box.style.backgroundColor = type === 'success' ? '#34c759' : (type === 'error' ? '#ff3b30' : '#007AFF');
+            setTimeout(() => { box.style.opacity = 0; }, 2500);
+        }
+
+        function fireworks() { confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); }
+
+        // 确保页面加载完成后初始化
+        console.log('荣耀系统 v6.0 已加载');
+    </script>
+</body>
+</html>
