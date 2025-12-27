@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清理数据 - 荣耀系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-clear {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-clear:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+        .btn-back {
+            background: #3498db;
+            color: white;
+        }
+        .btn-back:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .step {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step li {
+            margin: 10px 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 清理本地数据</h1>
+        <p>如果无法登录或系统异常，点击下面按钮清除本地数据，并清理PWA缓存（Service Worker）。</p>
+        
+        <button class="btn btn-clear" onclick="clearAllData()">🗑️ 清除所有数据</button>
+        <button class="btn btn-back" onclick="goBack()">⬅️ 返回登录</button>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="step">
+            <strong>清除数据后需要：</strong>
+            <ol>
+                <li>重新注册或使用默认账号登录</li>
+                <li>重新配置Firebase参数</li>
+                <li>如已"添加到主屏幕"，建议删除后重新添加（确保是最新版本）</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        function clearAllData() {
+            if (!confirm('确定要清除所有本地数据吗？\n\n此操作将删除：\n- 所有用户账号\n- 分数记录\n- 待审批任务\n- 悬赏任务\n- 房间设置\n- Firebase配置')) {
+                return;
+            }
+            
+            try {
+                // 清除所有 localStorage
+                localStorage.clear();
+                
+                // 清除所有 sessionStorage
+                sessionStorage.clear();
+                
+                // 清除所有 cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                const msg = document.getElementById('message');
+                msg.className = 'message success';
+                msg.innerText = '✅ 数据已清除！正在清理PWA缓存...';
+
+                // 额外清理：Service Worker + Cache Storage
+                const cleanSW = async () => {
+                    try {
+                        if ('serviceWorker' in navigator) {
+                            const regs = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all((regs || []).map(r => r.unregister()));
+                        }
+                    } catch (_) {}
+
+                    try {
+                        if ('caches' in window) {
+                            const keys = await caches.keys();
+                            await Promise.all((keys || []).map(k => caches.delete(k)));
+                        }
+                    } catch (_) {}
+                };
+
+                cleanSW().finally(() => {
+                    msg.innerText = '✅ 已完成清理！正在跳转到登录页...';
+                    setTimeout(() => {
+                        // 用 replace 避免返回到清理页
+                        window.location.replace('./index.html');
+                    }, 1200);
+                });
+                
+            } catch(e) {
+                alert('清除失败：' + e.message);
+            }
+        }
+        
+        function goBack() {
+            window.location.href = './index.html';
+        }
+    </script>
+</body>
+</html>
