@@ -137,6 +137,14 @@ const App = {
 
     // ========== 渲染管理员视图 ==========
     renderAdminView() {
+        // 🔴 首先隐藏所有孩子专属区域
+        const executorSections = document.querySelectorAll('.executor-only');
+        executorSections.forEach(el => el.style.display = 'none');
+
+        // 🟢 显示管理员专属区域
+        const adminSections = document.querySelectorAll('.admin-only');
+        adminSections.forEach(el => el.style.display = 'block');
+
         // 显示孩子选择器
         this.renderChildSelector();
 
@@ -154,15 +162,22 @@ const App = {
     renderChildView() {
         const session = Auth.currentSession;
 
+        // 🔴 首先隐藏所有管理员专属区域
+        const adminSections = document.querySelectorAll('.admin-only');
+        adminSections.forEach(el => el.style.display = 'none');
+
+        // 🟢 显示孩子专属区域
+        const executorSections = document.querySelectorAll('.executor-only');
+        executorSections.forEach(el => el.style.display = 'block');
+
         // 渲染可提交的任务
         this.renderTaskCards();
 
+        // 🆕 渲染我的提交（待审批状态）
+        this.renderMySubmissions();
+
         // 显示商店
         this.renderStore();
-
-        // 隐藏管理员专属区域
-        const adminSections = document.querySelectorAll('.admin-only');
-        adminSections.forEach(el => el.style.display = 'none');
     },
 
     // ========== 渲染孩子选择器 ==========
