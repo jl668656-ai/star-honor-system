@@ -5,7 +5,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="🦁 荣耀系统 v12.5.3 - 为孩子设计的行为激励和任务管理系统">
+    <meta name="description" content="🦁 荣耀系统 v12.6.0 - 为孩子设计的行为激励和任务管理系统">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-title" content="荣耀系统">
     
@@ -15,7 +15,7 @@
     <!-- iOS 相关配置 -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>">
     
-    <title>🦁 荣耀系统 v12.5.3 - UI/UX 优化版</title>
+    <title>🦁 荣耀系统 v12.6.0 - UI美化版</title>
     
     <!-- 外部依赖 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -56,7 +56,7 @@
             <!-- 登录表单 -->
             <div class="auth-box" id="loginBox">
                 <h1>🦁 荣耀系统</h1>
-                <p class="version-text">v12.5.3 UI/UX 优化版</p>
+                <p class="version-text">v12.6.0 UI美化版</p>
                 
                 <form id="loginForm">
                     <input type="text" id="loginUsername" class="auth-input" placeholder="账号" autocomplete="username">
@@ -138,6 +138,18 @@
                 <button id="addBountyBtn" class="btn-add">➕ 添加</button>
             </div>
             <div id="bountyList" class="bounty-list"></div>
+        </div>
+
+        <!-- 悬赏任务区域（孩子视图）- 可领取的悬赏 -->
+        <div id="availableBounties" class="executor-only bounty-section">
+            <div class="section-header">🎯 可领取悬赏</div>
+            <div id="bountyCards" class="bounty-cards"></div>
+        </div>
+
+        <!-- 我的待审批提交（孩子视图） -->
+        <div id="mySubmissions" class="executor-only my-submissions">
+            <div class="section-header">📋 我的提交</div>
+            <div id="submissionsList" class="submissions-list"></div>
         </div>
 
         <!-- 任务卡片区域（孩子视图） -->

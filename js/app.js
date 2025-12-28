@@ -170,11 +170,14 @@ const App = {
         const executorSections = document.querySelectorAll('.executor-only');
         executorSections.forEach(el => el.style.display = 'block');
 
-        // 渲染可提交的任务
-        this.renderTaskCards();
+        // 🆕 渲染可领取的悬赏任务
+        this.renderBountyCards();
 
         // 🆕 渲染我的提交（待审批状态）
         this.renderMySubmissions();
+
+        // 渲染可提交的任务
+        this.renderTaskCards();
 
         // 显示商店
         this.renderStore();
@@ -321,24 +324,117 @@ const App = {
 
         container.innerHTML = '';
 
+        if (items.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🏪</div><div class="text">暂无商品</div></div>';
+            return;
+        }
+
         items.forEach(item => {
             const canBuy = score >= item.cost;
             const card = document.createElement('div');
-            card.className = 'store-item' + (canBuy ? '' : ' disabled');
+            card.className = 'store-item-card' + (canBuy ? '' : ' disabled');
             // XSS 防护
             const safeIcon = UI.escapeHtml(item.icon || '🎁');
             const safeName = UI.escapeHtml(item.name);
             
             card.innerHTML = `
-                <div class="item-icon">${safeIcon}</div>
-                <div class="item-name">${safeName}</div>
-                <div class="item-cost">${item.cost} ⭐</div>
+                <div class="icon">${safeIcon}</div>
+                <div class="name">${safeName}</div>
+                <div class="cost">${item.cost} ⭐</div>
+                <button class="btn-buy" ${canBuy ? '' : 'disabled'}>兑换</button>
             `;
 
             if (canBuy) {
-                card.onclick = () => this.handleBuyItem(item.id);
+                card.querySelector('.btn-buy').onclick = (e) => {
+                    e.stopPropagation();
+                    this.handleBuyItem(item.id);
+                };
             }
 
+            container.appendChild(card);
+        });
+    },
+
+    // ========== 🆕 渲染可领取悬赏 ==========
+    renderBountyCards() {
+        const container = document.getElementById('bountyCards');
+        if (!container) return;
+
+        const session = Auth.currentSession;
+        const bountyTasks = Tasks.getBountyTasks();
+
+        container.innerHTML = '';
+
+        if (bountyTasks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><div class="text">暂无悬赏任务，等爸爸发布吧~</div></div>';
+            return;
+        }
+
+        bountyTasks.forEach(task => {
+            const isPending = FirebaseSync.isTaskPending(task.id, session.username);
+            
+            const card = document.createElement('div');
+            card.className = 'available-bounty' + (isPending ? ' submitted' : '');
+            // XSS 防护
+            const safeIcon = UI.escapeHtml(task.icon || '🎯');
+            const safeName = UI.escapeHtml(task.name);
+            
+            card.innerHTML = `
+                <div class="icon">${safeIcon}</div>
+                <div class="info">
+                    <div class="name">${safeName}</div>
+                    <div class="reward">奖励: +${task.reward} ⭐</div>
+                </div>
+                ${isPending 
+                    ? '<div class="status pending">等待审批</div>' 
+                    : `<button class="btn-claim" data-id="${task.id}">领取</button>`
+                }
+            `;
+            container.appendChild(card);
+        });
+
+        // 绑定领取按钮事件
+        container.querySelectorAll('.btn-claim').forEach(btn => {
+            btn.onclick = () => {
+                const taskId = btn.dataset.id;
+                const task = bountyTasks.find(t => t.id === taskId);
+                if (task) {
+                    this.handleSubmitTask(task);
+                }
+            };
+        });
+    },
+
+    // ========== 🆕 渲染我的提交（孩子查看待审批状态） ==========
+    renderMySubmissions() {
+        const container = document.getElementById('submissionsList');
+        if (!container) return;
+
+        const session = Auth.currentSession;
+        const pendingTasks = Tasks.getPendingTasks(session.username);
+
+        container.innerHTML = '';
+
+        if (pendingTasks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无待审批的任务提交</div></div>';
+            return;
+        }
+
+        pendingTasks.forEach(task => {
+            const card = document.createElement('div');
+            card.className = 'submission-card';
+            // XSS 防护
+            const safeIcon = UI.escapeHtml(task.icon || '📝');
+            const safeName = UI.escapeHtml(task.name);
+            
+            card.innerHTML = `
+                <div class="icon">${safeIcon}</div>
+                <div class="info">
+                    <div class="name">${safeName}</div>
+                    <div class="time">${UI.formatDateTime(task.createTime)}</div>
+                </div>
+                <div class="status">⏳ 待审批</div>
+            `;
             container.appendChild(card);
         });
     },
@@ -412,7 +508,10 @@ const App = {
 
         if (session.role === 'admin') {
             this.renderPendingTasks();
+            this.renderBountyManagement();
         } else {
+            this.renderBountyCards();
+            this.renderMySubmissions();
             this.renderTaskCards();
             this.renderStore();
         }

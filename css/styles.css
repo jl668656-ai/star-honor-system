@@ -1,6 +1,6 @@
 /**
- * 🦁 荣耀系统 v12.5.3 - 样式文件
- * 模块化重构：CSS 独立管理
+ * 🦁 荣耀系统 v12.6.0 - 样式文件
+ * 模块化重构：CSS 独立管理 + UI美化
  */
 
 /* ========== 基础重置 ========== */
@@ -965,5 +965,674 @@ button:active { transform: scale(0.95); }
     .modal-content.xlarge {
         max-height: 95vh;
         border-radius: 15px 15px 0 0;
+    }
+}
+
+/* ========== 🆕 v12.6 UI优化样式 ========== */
+
+/* 主应用页 */
+#mainPage {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 通用区块卡片 */
+.section-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+/* 区块标题头 */
+.section-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header.warning { color: #f39c12; }
+.section-header.penalty { color: #e74c3c; }
+.section-header.bounty { color: #9b59b6; }
+.section-header.store { color: #3498db; }
+.section-header.tasks { color: #27ae60; }
+
+/* 孩子选择器 */
+.child-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.child-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+    transition: all 0.2s;
+}
+
+.child-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.child-btn.active {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    box-shadow: 0 3px 10px rgba(46, 204, 113, 0.4);
+}
+
+/* 任务列表 */
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.task-list:empty::after {
+    content: "暂无待审批任务";
+    color: #999;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+}
+
+/* 惩罚网格 */
+.penalty-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+}
+
+.penalty-btn {
+    padding: 15px 12px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(238, 90, 90, 0.3);
+}
+
+.penalty-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(238, 90, 90, 0.4);
+}
+
+.penalty-btn .icon {
+    font-size: 24px;
+}
+
+.penalty-btn .name {
+    font-size: 12px;
+}
+
+.penalty-btn .value {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+/* 悬赏表单 */
+.bounty-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.bounty-input {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: border 0.2s;
+}
+
+.bounty-input:focus {
+    border-color: #9b59b6;
+    outline: none;
+}
+
+.bounty-reward {
+    width: 70px;
+    padding: 12px 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 15px;
+    text-align: center;
+}
+
+.bounty-reward:focus {
+    border-color: #9b59b6;
+    outline: none;
+}
+
+.btn-add {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+}
+
+/* 悬赏列表 */
+.bounty-list {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bounty-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f8f9fa, #f0f0f5);
+    border-radius: 12px;
+    border-left: 4px solid #9b59b6;
+}
+
+.bounty-item .icon {
+    font-size: 24px;
+}
+
+.bounty-item .info {
+    flex: 1;
+}
+
+.bounty-item .name {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.bounty-item .reward {
+    font-size: 12px;
+    color: #9b59b6;
+    font-weight: bold;
+}
+
+.bounty-item .btn-delete-bounty {
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bounty-item .btn-delete-bounty:hover {
+    background: #ffe6e6;
+    border-color: #e74c3c;
+}
+
+/* 商店网格 */
+.store-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.store-item-card {
+    background: linear-gradient(135deg, #f8f9fa, #fff);
+    border-radius: 16px;
+    padding: 15px;
+    text-align: center;
+    border: 2px solid #eee;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.store-item-card:hover {
+    border-color: #3498db;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.2);
+}
+
+.store-item-card .icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+.store-item-card .name {
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.store-item-card .cost {
+    font-size: 14px;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.store-item-card .btn-buy {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 底部操作按钮 */
+.bottom-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    padding-bottom: 30px;
+}
+
+.btn-secondary {
+    padding: 16px 20px;
+    background: white;
+    color: #333;
+    border: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* 状态栏优化 */
+.status-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.role-badge {
+    font-size: 16px;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.username-text {
+    font-size: 16px;
+    color: #333;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+}
+
+.btn-icon:hover {
+    background: #e0e0e0;
+}
+
+.score-display {
+    font-size: 32px;
+    font-weight: 800;
+    color: #333;
+    margin: 10px 0;
+}
+
+.progress-section {
+    margin-top: 15px;
+}
+
+.next-rank-text {
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.btn-action {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+    color: #333;
+    border: none;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-action:hover {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+/* ========== 孩子界面专属样式 ========== */
+
+/* 可领取悬赏区域 */
+.bounty-section {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.bounty-section .section-header {
+    color: #9b59b6;
+}
+
+.available-bounty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f3e5f5, #e8f5e9);
+    border-radius: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #9b59b6;
+}
+
+.available-bounty .icon {
+    font-size: 28px;
+}
+
+.available-bounty .info {
+    flex: 1;
+}
+
+.available-bounty .name {
+    font-weight: bold;
+    font-size: 15px;
+    color: #333;
+}
+
+.available-bounty .reward {
+    font-size: 13px;
+    color: #27ae60;
+    font-weight: bold;
+    margin-top: 3px;
+}
+
+.available-bounty .btn-claim {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 我的提交 */
+.my-submissions {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.my-submissions .section-header {
+    color: #f39c12;
+}
+
+.submissions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.submission-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: #fff8e6;
+    border-radius: 12px;
+    border-left: 4px solid #f39c12;
+}
+
+.submission-card .icon {
+    font-size: 22px;
+}
+
+.submission-card .info {
+    flex: 1;
+}
+
+.submission-card .name {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.submission-card .time {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.submission-card .status {
+    padding: 5px 12px;
+    background: #f39c12;
+    color: white;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* 空状态提示 */
+.empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: #999;
+}
+
+.empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.empty-state .text {
+    font-size: 14px;
+}
+
+/* ========== 弹窗按钮优化 ========== */
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-confirm {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 14px;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-close {
+    width: 100%;
+    padding: 14px;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.modal-content.large {
+    max-width: 550px;
+}
+
+/* ========== 历史记录样式 ========== */
+.history-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item .icon {
+    font-size: 24px;
+    width: 36px;
+    text-align: center;
+}
+
+.history-item .info {
+    flex: 1;
+}
+
+.history-item .name {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.history-item .time {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.history-item .points {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.history-item .points.positive {
+    color: #27ae60;
+}
+
+.history-item .points.negative {
+    color: #e74c3c;
+}
+
+/* 军衔表格容器 */
+.rank-table-container {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+/* ========== v12.6 响应式优化 ========== */
+@media (max-width: 480px) {
+    .section-card {
+        padding: 15px;
+        border-radius: 16px;
+    }
+    
+    .bounty-form {
+        flex-direction: column;
+    }
+    
+    .bounty-input,
+    .bounty-reward,
+    .btn-add {
+        width: 100%;
+    }
+    
+    .penalty-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .store-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+    }
+    
+    .btn-action {
+        width: 100%;
     }
 }

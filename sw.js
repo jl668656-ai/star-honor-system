@@ -1,6 +1,6 @@
-// Service Worker v12.5.2 - UI 修复版
+// Service Worker v12.6.0 - UI美化版
 // 针对 iOS Safari 优化，支持 PWA 缓存与实时更新
-const CACHE_NAME = 'honor-system-v12.5.2';
+const CACHE_NAME = 'honor-system-v12.6.0';
 const urlsToCache = [
   './',
   './index.html',
