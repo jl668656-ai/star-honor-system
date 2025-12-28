@@ -5,7 +5,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="🦁 荣耀系统 v12.6.0 - 为孩子设计的行为激励和任务管理系统">
+    <meta name="description" content="🦁 荣耀系统 v12.6.1 - 为孩子设计的行为激励和任务管理系统">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-title" content="荣耀系统">
     
@@ -15,7 +15,7 @@
     <!-- iOS 相关配置 -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>">
     
-    <title>🦁 荣耀系统 v12.6.0 - UI美化版</title>
+    <title>🦁 荣耀系统 v12.6.1 - 功能完善版</title>
     
     <!-- 外部依赖 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -56,7 +56,7 @@
             <!-- 登录表单 -->
             <div class="auth-box" id="loginBox">
                 <h1>🦁 荣耀系统</h1>
-                <p class="version-text">v12.6.0 UI美化版</p>
+                <p class="version-text">v12.6.1 功能完善版</p>
                 
                 <form id="loginForm">
                     <input type="text" id="loginUsername" class="auth-input" placeholder="账号" autocomplete="username">
@@ -121,6 +121,12 @@
         <div class="admin-only section-card">
             <div class="section-header warning">⏳ 待审批任务</div>
             <div id="pendingTasks" class="task-list"></div>
+        </div>
+
+        <!-- 🆕 快速任务清单（管理员用于快速复核）-->
+        <div class="admin-only section-card">
+            <div class="section-header tasks">📋 快速加分（点击即可给选中孩子加分）</div>
+            <div id="quickTaskList" class="quick-task-list"></div>
         </div>
 
         <!-- 惩罚区域（管理员专用） -->

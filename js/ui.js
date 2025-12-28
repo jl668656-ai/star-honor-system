@@ -91,6 +91,13 @@ const UI = {
         if (modal) {
             modal.classList.remove('hidden');
             modal.style.display = 'flex';
+            
+            // 🆕 根据弹窗类型渲染内容
+            if (modalId === 'rankModal' && typeof App !== 'undefined') {
+                App.renderRankTable();
+            } else if (modalId === 'historyModal' && typeof App !== 'undefined') {
+                App.renderHistory();
+            }
         }
     },
 

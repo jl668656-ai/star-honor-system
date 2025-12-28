@@ -151,6 +151,9 @@ const App = {
         // 显示待审批任务
         this.renderPendingTasks();
 
+        // 🆕 显示快速复核任务清单
+        this.renderQuickTaskList();
+
         // 显示惩罚区域
         this.renderPenalties();
 
@@ -262,15 +265,20 @@ const App = {
 
         container.innerHTML = '';
 
-        // 按分类分组
+        if (allTasks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无可提交的任务</div></div>';
+            return;
+        }
+
+        // 按分类分组 - 排除悬赏任务（已在单独区域显示）
         const categories = {
-            core: { title: '🎯 核心任务', tasks: [] },
-            daily: { title: '📋 日常任务', tasks: [] },
-            bounty: { title: '🏆 悬赏任务', tasks: [] }
+            core: { title: '🎯 核心任务', color: '#e74c3c', tasks: [] },
+            daily: { title: '📋 日常任务', color: '#f39c12', tasks: [] }
         };
 
         allTasks.forEach(task => {
-            if (categories[task.category]) {
+            // 悬赏任务单独显示，这里不重复
+            if (task.category !== 'bounty' && categories[task.category]) {
                 categories[task.category].tasks.push(task);
             }
         });
@@ -279,8 +287,8 @@ const App = {
             if (category.tasks.length === 0) return;
 
             const section = document.createElement('div');
-            section.className = 'task-section';
-            section.innerHTML = `<h3 class="section-title">${category.title}</h3>`;
+            section.className = 'task-section section-card';
+            section.innerHTML = `<div class="section-header" style="color: ${category.color}">${category.title}</div>`;
 
             const grid = document.createElement('div');
             grid.className = 'task-grid';
@@ -289,20 +297,28 @@ const App = {
                 const isPending = FirebaseSync.isTaskPending(task.id, session.username);
                 
                 const card = document.createElement('div');
-                card.className = 'task-card' + (isPending ? ' submitted' : '');
+                card.className = 'task-item-card' + (isPending ? ' submitted' : '');
                 // XSS 防护
-                const safeIcon = UI.escapeHtml(task.icon);
+                const safeIcon = UI.escapeHtml(task.icon || '⭐');
                 const safeName = UI.escapeHtml(task.name);
                 
                 card.innerHTML = `
                     <div class="task-icon">${safeIcon}</div>
-                    <div class="task-name">${safeName}</div>
-                    <div class="task-reward">+${task.reward} ⭐</div>
-                    ${isPending ? '<div class="pending-badge">等待审批中</div>' : ''}
+                    <div class="task-info">
+                        <div class="task-name">${safeName}</div>
+                        <div class="task-reward">+${task.reward} ⭐</div>
+                    </div>
+                    ${isPending 
+                        ? '<div class="task-status pending">⏳ 等待审批</div>' 
+                        : '<button class="btn-submit-task">提交</button>'
+                    }
                 `;
 
                 if (!isPending) {
-                    card.onclick = () => this.handleSubmitTask(task);
+                    card.querySelector('.btn-submit-task').onclick = (e) => {
+                        e.stopPropagation();
+                        this.handleSubmitTask(task);
+                    };
                 }
 
                 grid.appendChild(card);
@@ -311,6 +327,11 @@ const App = {
             section.appendChild(grid);
             container.appendChild(section);
         });
+
+        // 如果没有任何任务
+        if (container.innerHTML === '') {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无可提交的任务</div></div>';
+        }
     },
 
     // ========== 渲染商店 ==========
@@ -439,6 +460,105 @@ const App = {
         });
     },
 
+    // ========== 🆕 渲染快速任务清单（管理员用于快速复核）==========
+    renderQuickTaskList() {
+        const container = document.getElementById('quickTaskList');
+        if (!container) return;
+
+        const selectedChild = Tasks.getSelectedChild();
+        const allTasks = Tasks.getAllTasks();
+        
+        container.innerHTML = '';
+
+        if (allTasks.length === 0) {
+            container.innerHTML = '<div class="empty-hint">暂无任务</div>';
+            return;
+        }
+
+        // 分类显示
+        const categories = {
+            core: { title: '核心', tasks: [] },
+            daily: { title: '日常', tasks: [] },
+            bounty: { title: '悬赏', tasks: [] }
+        };
+
+        allTasks.forEach(task => {
+            if (categories[task.category]) {
+                categories[task.category].tasks.push(task);
+            }
+        });
+
+        Object.entries(categories).forEach(([key, category]) => {
+            if (category.tasks.length === 0) return;
+
+            const group = document.createElement('div');
+            group.className = 'quick-task-group';
+            group.innerHTML = `<div class="group-title">${category.title}</div>`;
+
+            const list = document.createElement('div');
+            list.className = 'quick-task-items';
+
+            category.tasks.forEach(task => {
+                const item = document.createElement('button');
+                item.className = 'quick-task-btn';
+                const safeIcon = UI.escapeHtml(task.icon || '⭐');
+                const safeName = UI.escapeHtml(task.name);
+                
+                item.innerHTML = `${safeIcon} <span class="name">${safeName}</span> <span class="reward">+${task.reward}</span>`;
+                item.onclick = () => this.handleQuickApprove(task, selectedChild);
+                list.appendChild(item);
+            });
+
+            group.appendChild(list);
+            container.appendChild(group);
+        });
+    },
+
+    // ========== 🆕 快速批准任务（管理员直接给选中孩子加分）==========
+    async handleQuickApprove(task, childUsername) {
+        if (!childUsername) {
+            UI.error('请先选择孩子');
+            return;
+        }
+
+        if (!confirm(`确定为选中孩子完成 "${task.name}" 并加 ${task.reward} ⭐ 吗？`)) {
+            return;
+        }
+
+        try {
+            const session = Auth.currentSession;
+            const child = Auth.getChildren().find(c => c.username === childUsername);
+            
+            // 直接加分，不需要孩子提交
+            const currentScore = Storage.getScore(childUsername);
+            const newScore = currentScore + task.reward;
+            Storage.saveScore(childUsername, newScore);
+
+            // 同步到云端
+            await FirebaseSync.syncScore(childUsername, newScore);
+
+            // 记录历史
+            await FirebaseSync.addToHistory({
+                taskId: task.id,
+                taskName: task.name,
+                name: task.name,
+                icon: task.icon,
+                reward: task.reward,
+                childName: childUsername,
+                approvedBy: session.username,
+                finishTime: Date.now()
+            });
+
+            UI.createFireworks();
+            UI.success(`✅ ${child?.nickname || childUsername} 获得 ${task.reward} ⭐`);
+            UI.vibrate([100, 50, 100]);
+            
+            this.updateStatusBar();
+        } catch (e) {
+            UI.error(e.message);
+        }
+    },
+
     // ========== 渲染惩罚区域 ==========
     renderPenalties() {
         const container = document.getElementById('penaltyList');
@@ -447,20 +567,25 @@ const App = {
         const penalties = Tasks.getPenalties();
         container.innerHTML = '';
 
+        if (penalties.length === 0) {
+            container.innerHTML = '<div class="empty-hint">暂无惩罚项目</div>';
+            return;
+        }
+
         penalties.forEach(penalty => {
-            const card = document.createElement('div');
-            card.className = 'penalty-card';
+            const btn = document.createElement('button');
+            btn.className = 'penalty-btn';
             // XSS 防护
             const safeIcon = UI.escapeHtml(penalty.icon || '⚠️');
             const safeName = UI.escapeHtml(penalty.name);
             
-            card.innerHTML = `
-                <div class="penalty-icon">${safeIcon}</div>
-                <div class="penalty-name">${safeName}</div>
-                <div class="penalty-cost">-${penalty.cost} ⭐</div>
+            btn.innerHTML = `
+                <div class="icon">${safeIcon}</div>
+                <div class="name">${safeName}</div>
+                <div class="value">-${penalty.cost} ⭐</div>
             `;
-            card.onclick = () => this.handleApplyPenalty(penalty.id);
-            container.appendChild(card);
+            btn.onclick = () => this.handleApplyPenalty(penalty.id);
+            container.appendChild(btn);
         });
     },
 
@@ -472,23 +597,31 @@ const App = {
         const bountyTasks = Tasks.getBountyTasks();
         container.innerHTML = '';
 
+        if (bountyTasks.length === 0) {
+            container.innerHTML = '<div class="empty-hint">暂无悬赏任务，在上方添加</div>';
+            return;
+        }
+
         bountyTasks.forEach(task => {
             const item = document.createElement('div');
             item.className = 'bounty-item';
             // XSS 防护
-            const safeIcon = UI.escapeHtml(task.icon);
+            const safeIcon = UI.escapeHtml(task.icon || '🎯');
             const safeName = UI.escapeHtml(task.name);
             
             item.innerHTML = `
-                <span class="bounty-name">${safeIcon} ${safeName}</span>
-                <span class="bounty-reward">+${task.reward} ⭐</span>
-                <button class="btn-remove" data-id="${task.id}">🗑️</button>
+                <div class="icon">${safeIcon}</div>
+                <div class="info">
+                    <div class="name">${safeName}</div>
+                    <div class="reward">+${task.reward} ⭐</div>
+                </div>
+                <button class="btn-delete-bounty" data-id="${task.id}">🗑️</button>
             `;
             container.appendChild(item);
         });
 
         // 绑定删除事件
-        container.querySelectorAll('.btn-remove').forEach(btn => {
+        container.querySelectorAll('.btn-delete-bounty').forEach(btn => {
             btn.onclick = () => {
                 if (confirm('确定删除这个悬赏任务吗？')) {
                     Tasks.removeBountyTask(btn.dataset.id);
@@ -497,6 +630,81 @@ const App = {
                 }
             };
         });
+    },
+
+    // ========== 🆕 渲染军衔档案弹窗 ==========
+    renderRankTable() {
+        const container = document.getElementById('rankTableContainer');
+        if (!container) return;
+
+        const session = Auth.currentSession;
+        const username = session.role === 'admin' ? Tasks.getSelectedChild() : session.username;
+        const score = username ? Storage.getScore(username) : 0;
+
+        let html = '<table class="rank-table">';
+        html += '<tr><th>图标</th><th>军衔</th><th>所需星星</th><th>状态</th></tr>';
+
+        RANK_SYSTEM.forEach((rank, idx) => {
+            const isCurrentRank = score >= rank.min && (idx === RANK_SYSTEM.length - 1 || score < RANK_SYSTEM[idx + 1].min);
+            const isUnlocked = score >= rank.min;
+            
+            html += `<tr class="${isCurrentRank ? 'current-rank' : ''} ${isUnlocked ? 'unlocked' : 'locked'}">
+                <td class="rank-icon">${rank.icon}</td>
+                <td class="rank-name">${rank.name}</td>
+                <td class="rank-score">${rank.min} ⭐</td>
+                <td>${isCurrentRank ? '📍 当前' : (isUnlocked ? '✅ 已解锁' : '🔒 未解锁')}</td>
+            </tr>`;
+        });
+
+        html += '</table>';
+        container.innerHTML = html;
+    },
+
+    // ========== 🆕 渲染成长足迹弹窗 ==========
+    async renderHistory() {
+        const container = document.getElementById('historyContainer');
+        if (!container) return;
+
+        const session = Auth.currentSession;
+        const username = session.role === 'admin' ? Tasks.getSelectedChild() : session.username;
+        
+        if (!username) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📜</div><div class="text">请先选择孩子</div></div>';
+            return;
+        }
+
+        container.innerHTML = '<div class="loading-hint">加载中...</div>';
+
+        try {
+            // 从 Firebase 获取历史记录
+            const history = await FirebaseSync.getHistory(item => item.childName === username || item.username === username);
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">📜</div><div class="text">暂无历史记录</div></div>';
+                return;
+            }
+
+            let html = '';
+            history.slice(0, 50).forEach(item => {
+                const isPositive = (item.points || item.reward || 0) > 0;
+                const points = item.points || item.reward || 0;
+                html += `
+                    <div class="history-item">
+                        <div class="icon">${item.icon || (isPositive ? '⭐' : '💔')}</div>
+                        <div class="info">
+                            <div class="name">${UI.escapeHtml(item.name || item.taskName || '未知')}</div>
+                            <div class="time">${UI.formatDateTime(item.finishTime || item.time || item.createTime)}</div>
+                        </div>
+                        <div class="points ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${points} ⭐</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html || '<div class="empty-state"><div class="icon">📜</div><div class="text">暂无历史记录</div></div>';
+        } catch (e) {
+            console.error('获取历史记录失败:', e);
+            container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><div class="text">获取记录失败</div></div>';
+        }
     },
 
     // ========== 刷新 UI ==========
