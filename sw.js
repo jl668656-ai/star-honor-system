@@ -1,24 +1,35 @@
-// Service Worker v12.3
+// Service Worker v12.5.2 - UI 修复版
 // 针对 iOS Safari 优化，支持 PWA 缓存与实时更新
-const CACHE_NAME = 'honor-system-v12.3';
+const CACHE_NAME = 'honor-system-v12.5.2';
 const urlsToCache = [
   './',
   './index.html',
+  './index-modular.html',
   './manifest.json',
-  './firebase-config.js'
+  './firebase-config.js',
+  // 模块化 CSS
+  './css/styles.css',
+  // 模块化 JS
+  './js/config.js',
+  './js/storage.js',
+  './js/ui.js',
+  './js/firebase-sync.js',
+  './js/auth.js',
+  './js/tasks.js',
+  './js/app.js'
 ];
 
 // 安装时缓存关键资源
 self.addEventListener('install', event => {
-  console.log('[SW v12.2] 安装中...');
+  console.log('[SW v12.5] 安装中...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW v12.2] 缓存资源');
+        console.log('[SW v12.5] 缓存资源');
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('[SW v12.2] 跳过等待，立即激活');
+        console.log('[SW v12.5] 跳过等待，立即激活');
         return self.skipWaiting();
       })
   );
@@ -26,19 +37,19 @@ self.addEventListener('install', event => {
 
 // 激活时清理旧缓存
 self.addEventListener('activate', event => {
-  console.log('[SW v12.2] 激活中...');
+  console.log('[SW v12.5] 激活中...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('[SW v12.2] 删除旧缓存:', cacheName);
+            console.log('[SW v12.5] 删除旧缓存:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[SW v12.2] 立即接管所有客户端');
+      console.log('[SW v12.5] 立即接管所有客户端');
       return self.clients.claim();
     })
   );

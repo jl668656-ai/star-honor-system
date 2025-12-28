@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="🦁 荣耀系统 v12.5.3 - 为孩子设计的行为激励和任务管理系统">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-title" content="荣耀系统">
+    
+    <!-- PWA 清单文件 -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS 相关配置 -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>">
+    
+    <title>🦁 荣耀系统 v12.5.3 - UI/UX 优化版</title>
+    
+    <!-- 外部依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <!-- 模块化 CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- 全局消息提示 -->
+    <div id="msgBox" class="message-box" style="display: none;"></div>
+    
+    <!-- 加载遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载中...</div>
+    </div>
+    
+    <!-- 烟花容器 -->
+    <div id="fireworksContainer" class="fireworks-container"></div>
+
+    <!-- 禁用JS提示 -->
+    <noscript>
+        <div style="background: #fff; padding: 30px; margin: 20px; border-radius: 15px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 15px;">⚠️</div>
+            <div style="font-weight: bold; font-size: 18px; color: #e74c3c;">请启用 JavaScript</div>
+            <div style="margin-top: 8px;">解决方法：iPhone/iPad 打开"设置 → Safari → 高级 → JavaScript"</div>
+        </div>
+    </noscript>
+
+    <!-- ========== 登录页 ========== -->
+    <div id="loginPage" class="page">
+        <div class="auth-container">
+            <!-- 登录表单 -->
+            <div class="auth-box" id="loginBox">
+                <h1>🦁 荣耀系统</h1>
+                <p class="version-text">v12.5.3 UI/UX 优化版</p>
+                
+                <form id="loginForm">
+                    <input type="text" id="loginUsername" class="auth-input" placeholder="账号" autocomplete="username">
+                    <input type="password" id="loginPassword" class="auth-input" placeholder="密码" autocomplete="current-password">
+                    
+                    <select id="loginRole" class="auth-select">
+                        <option value="executor">⚔️ 执行者（孩子）</option>
+                        <option value="admin">🛡️ 管理者（爸爸）</option>
+                    </select>
+                    
+                    <button type="submit" class="btn-auth">🚀 登录</button>
+                </form>
+                
+                <div class="auth-links">
+                    <button class="btn-link" onclick="UI.showModal('resetPasswordModal')">🔑 找回密码</button>
+                </div>
+                
+                <div class="auth-hint">
+                    💡 默认账号：dad/654321（管理员）、zaki/123456（孩子）
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 主应用页 ========== -->
+    <div id="mainPage" class="page" style="display: none;">
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-header">
+                <span id="currentRole" class="role-badge">👑 管理员</span>
+                <span id="currentUsername" class="username-text">用户</span>
+                <button id="logoutBtn" class="btn-icon" title="退出">🚪</button>
+            </div>
+            
+            <div id="currentRank" class="rank-badge">🌑 预备兵</div>
+            <div class="score-display">
+                <span id="currentScore">⭐ 0</span>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div id="rankProgress" class="progress-fill"></div>
+                </div>
+                <div id="nextRankInfo" class="next-rank-text">距离下一军衔还需 50 ⭐</div>
+            </div>
+            
+            <div class="quick-actions">
+                <button class="btn-action" onclick="UI.showModal('rankModal')">📂 军衔档案</button>
+                <button class="btn-action" onclick="UI.showModal('historyModal')">📜 成长足迹</button>
+                <button class="btn-action admin-only" onclick="App.openTaskManager()">⚙️ 任务管理</button>
+            </div>
+        </div>
+
+        <!-- 孩子选择器（管理员专用） -->
+        <div class="admin-only section-card">
+            <div class="section-header">👶 选择孩子</div>
+            <div id="childSelector" class="child-selector"></div>
+        </div>
+
+        <!-- 待审批任务（管理员专用） -->
+        <div class="admin-only section-card">
+            <div class="section-header warning">⏳ 待审批任务</div>
+            <div id="pendingTasks" class="task-list"></div>
+        </div>
+
+        <!-- 惩罚区域（管理员专用） -->
+        <div class="admin-only section-card">
+            <div class="section-header penalty">⚠️ 惩罚管理</div>
+            <div id="penaltyList" class="penalty-grid"></div>
+        </div>
+
+        <!-- 悬赏任务管理（管理员专用） - 简化版，详细管理在任务管理中心 -->
+        <div class="admin-only section-card">
+            <div class="section-header bounty">🎯 快速添加悬赏</div>
+            <div class="bounty-form">
+                <input type="text" id="bountyName" class="bounty-input" placeholder="任务名称">
+                <input type="number" id="bountyReward" class="bounty-reward" value="10" min="1" max="100">
+                <button id="addBountyBtn" class="btn-add">➕ 添加</button>
+            </div>
+            <div id="bountyList" class="bounty-list"></div>
+        </div>
+
+        <!-- 任务卡片区域（孩子视图） -->
+        <div id="taskCards" class="executor-only"></div>
+
+        <!-- 商店区域（孩子视图） -->
+        <div class="executor-only section-card">
+            <div class="section-header store">🏪 军需商店</div>
+            <div id="storeItems" class="store-grid"></div>
+        </div>
+
+        <!-- 底部操作 -->
+        <div class="bottom-actions">
+            <button class="btn-secondary admin-only" onclick="App.openTaskManager()">⚙️ 任务管理中心</button>
+            <button class="btn-secondary" onclick="App.testFirebase()">🔌 测试云连接</button>
+            <button class="btn-secondary" onclick="UI.showModal('passwordModal')">🔐 修改密码</button>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗：找回密码 ========== -->
+    <div id="resetPasswordModal" class="modal hidden">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2>🔑 找回密码</h2>
+            <input type="text" id="resetUsername" class="auth-input" placeholder="输入账号">
+            <div class="hint-box">
+                💡 输入账号后，密码将重置为 <strong>123456</strong>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-confirm" onclick="App.handleResetPassword()">确认重置</button>
+                <button class="btn-cancel" onclick="UI.hideModal('resetPasswordModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗：修改密码 ========== -->
+    <div id="passwordModal" class="modal hidden">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2>🔐 修改密码</h2>
+            <input type="password" id="oldPassword" class="auth-input" placeholder="旧密码">
+            <input type="password" id="newPassword" class="auth-input" placeholder="新密码（至少4位）">
+            <input type="password" id="confirmPassword" class="auth-input" placeholder="确认新密码">
+            <div class="modal-actions">
+                <button class="btn-confirm" onclick="App.handleChangePassword()">确认修改</button>
+                <button class="btn-cancel" onclick="UI.hideModal('passwordModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗：军衔档案 ========== -->
+    <div id="rankModal" class="modal hidden">
+        <div class="modal-content large" onclick="event.stopPropagation()">
+            <h2>🏆 军衔档案系统</h2>
+            <div id="rankTableContainer" class="rank-table-container"></div>
+            <button class="btn-close" onclick="UI.hideModal('rankModal')">关闭</button>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗：成长足迹 ========== -->
+    <div id="historyModal" class="modal hidden">
+        <div class="modal-content large" onclick="event.stopPropagation()">
+            <h2>📜 成长足迹</h2>
+            <div id="historyContainer" class="history-container"></div>
+            <button class="btn-close" onclick="UI.hideModal('historyModal')">关闭</button>
+        </div>
+    </div>
+
+    <!-- ========== 🆕 弹窗：任务管理中心 ========== -->
+    <div id="taskManagerModal" class="modal hidden">
+        <div class="modal-content xlarge" onclick="event.stopPropagation()">
+            <div class="modal-header-bar">
+                <h2>⚙️ 任务管理中心</h2>
+                <button class="btn-close-x" onclick="UI.hideModal('taskManagerModal')">✕</button>
+            </div>
+            <div id="taskManagerContent" class="task-manager-content">
+                <!-- 内容由 JS 动态渲染 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 模块化 JavaScript ========== -->
+    <!-- 按依赖顺序加载 -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/firebase-sync.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Service Worker 注册 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ SW 注册成功:', reg.scope))
+                    .catch(err => console.warn('⚠️ SW 注册失败:', err));
+            });
+        }
+    </script>
+</body>
+</html>
