@@ -1,9 +1,17 @@
 /**
- * 🦁 荣耀系统 v12.2.0 - UI 工具模块
+ * 🦁 荣耀系统 v12.6.1 - UI 工具模块
  * 处理消息提示、动画、格式化等 UI 相关功能
  */
 
 const UI = {
+    // ========== XSS 防护 ==========
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
     // ========== 消息提示 ==========
     showMessage(text, type = 'success') {
         const msgBox = document.getElementById('msgBox');

@@ -149,6 +149,30 @@ const FirebaseSync = {
         };
     },
 
+    // ========== 🆕 添加到历史记录 ==========
+    async addToHistory(historyItem) {
+        const historyRef = this.getHistoryRef();
+        if (!historyRef) {
+            console.warn('⚠️ 云端未配置，无法添加历史记录');
+            return;
+        }
+
+        try {
+            await historyRef.push().set({
+                ...historyItem,
+                status: historyItem.status || 'approved',
+                finishTime: historyItem.finishTime || Date.now()
+            });
+        } catch (e) {
+            console.warn('⚠️ 添加历史记录失败:', e);
+        }
+    },
+
+    // ========== 分数同步 ==========
+    syncScore: async function(username, score) {
+        return this.syncScoreToCloud(username, score);
+    },
+
     // ========== 分数同步到云端 ==========
     async syncScoreToCloud(username, score) {
         const ref = this.getScoresRef(username);

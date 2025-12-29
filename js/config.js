@@ -76,7 +76,7 @@ const DEFAULT_USERS = [
 ];
 
 // ========== 版本信息 ==========
-const APP_VERSION = 'v12.5.3';
+const APP_VERSION = 'v12.6.1';
 const APP_NAME = '🦁 荣耀系统';
 
 // 导出（如果使用 ES6 模块）

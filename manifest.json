@@ -1,8 +1,8 @@
 {
   "name": "荣耀系统",
   "short_name": "荣耀",
-  "description": "🏁 荣耀系统 v12.1.2 - 为孩子设计的行为激励和任务管理系统",
-  "start_url": "./index.html",
+  "description": "🦁 荣耀系统 v12.6.1 - 为孩子设计的行为激励和任务管理系统",
+  "start_url": "./index-modular.html",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
@@ -12,13 +12,13 @@
   "categories": ["productivity", "lifestyle"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🏁</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23667eea' width='512' height='512'/><text x='50%' y='50%' font-size='260' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🏁</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23667eea' width='512' height='512'/><text x='50%' y='50%' font-size='260' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='white'>🦁</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

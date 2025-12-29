@@ -1,6 +1,6 @@
-// Service Worker v12.6.0 - UI美化版
+// Service Worker v12.6.1 - 功能完善版
 // 针对 iOS Safari 优化，支持 PWA 缓存与实时更新
-const CACHE_NAME = 'honor-system-v12.6.0';
+const CACHE_NAME = 'honor-system-v12.6.1';
 const urlsToCache = [
   './',
   './index.html',
@@ -21,15 +21,15 @@ const urlsToCache = [
 
 // 安装时缓存关键资源
 self.addEventListener('install', event => {
-  console.log('[SW v12.5] 安装中...');
+  console.log('[SW v12.6.1] 安装中...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW v12.5] 缓存资源');
+        console.log('[SW v12.6.1] 缓存资源');
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('[SW v12.5] 跳过等待，立即激活');
+        console.log('[SW v12.6.1] 跳过等待，立即激活');
         return self.skipWaiting();
       })
   );
@@ -37,7 +37,7 @@ self.addEventListener('install', event => {
 
 // 激活时清理旧缓存
 self.addEventListener('activate', event => {
-  console.log('[SW v12.5] 激活中...');
+  console.log('[SW v12.6.1] 激活中...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
